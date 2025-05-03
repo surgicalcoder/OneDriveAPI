@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using KoenZomers.OneDrive.Api.Enums;
 using System.IO;
+using System.Threading;
 
 namespace KoenZomers.OneDrive.Api
 {
@@ -136,7 +137,7 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="scopes">Scopes to request access for</param>
         /// <returns>Access token for the Graph API</returns>
         /// <exception cref="Exceptions.TokenRetrievalFailedException">Thrown when unable to retrieve a valid access token</exception>
-        protected async Task<OneDriveAccessToken> GetAccessTokenFromRefreshToken(string refreshToken, string[] scopes)
+        protected async Task<OneDriveAccessToken> GetAccessTokenFromRefreshToken(string refreshToken, string[] scopes, CancellationToken cancellationToken = new())
         {
             var queryBuilder = new QueryStringBuilder();
             queryBuilder.Add("client_id", ClientId);
@@ -146,7 +147,7 @@ namespace KoenZomers.OneDrive.Api
             queryBuilder.Add("grant_type", "refresh_token");
             if (ClientSecret != null)
                 queryBuilder.Add("client_secret", ClientSecret);
-            return await PostToTokenEndPoint(queryBuilder);
+            return await PostToTokenEndPoint(queryBuilder, cancellationToken);
         }
 
         #endregion

@@ -13,6 +13,7 @@ using KoenZomers.OneDrive.Api.Enums;
 using KoenZomers.OneDrive.Api.Helpers;
 using System.Text.Json.Serialization;
 using System.Text.Json;
+using System.Threading;
 
 namespace KoenZomers.OneDrive.Api
 {
@@ -169,7 +170,7 @@ namespace KoenZomers.OneDrive.Api
         /// Tries to retrieve an access token based on the tokens already available in this OneDrive instance
         /// </summary>
         /// <returns>OneDrive access token or NULL if unable to get an access token</returns>
-        public async Task<OneDriveAccessToken> GetAccessToken()
+        public async Task<OneDriveAccessToken> GetAccessToken(CancellationToken cancellationToken = new())
         {
             // Check if we have an access token
             if (AccessToken != null)
@@ -185,7 +186,7 @@ namespace KoenZomers.OneDrive.Api
                 if (!string.IsNullOrEmpty(AccessToken.RefreshToken))
                 {
                     // We have a refresh token, request a new access token using it
-                    AccessToken = await GetAccessTokenFromRefreshToken(AccessToken.RefreshToken);
+                    AccessToken = await GetAccessTokenFromRefreshToken(AccessToken.RefreshToken, cancellationToken);
                     return AccessToken;
                 }
             }
@@ -198,7 +199,7 @@ namespace KoenZomers.OneDrive.Api
             }
 
             // No access token but we have an authorization token, request the access token
-            AccessToken = await GetAccessTokenFromAuthorizationToken(AuthorizationToken);
+            AccessToken = await GetAccessTokenFromAuthorizationToken(AuthorizationToken, cancellationToken);
             AccessTokenValidUntil = DateTime.Now.AddSeconds(AccessToken.AccessTokenExpirationDuration);
             return AccessToken;
         }
@@ -216,9 +217,10 @@ namespace KoenZomers.OneDrive.Api
         /// Sends a HTTP POST to the OneDrive Token EndPoint
         /// </summary>
         /// <param name="queryBuilder">The querystring parameters to send in the POST body</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>Access token for OneDrive or NULL if unable to retrieve an access token</returns>
         /// <exception cref="Exceptions.TokenRetrievalFailedException">Thrown when unable to retrieve a valid access token</exception>
-        protected async Task<OneDriveAccessToken> PostToTokenEndPoint(QueryStringBuilder queryBuilder)
+        protected async Task<OneDriveAccessToken> PostToTokenEndPoint(QueryStringBuilder queryBuilder, CancellationToken cancellationToken = new())
         {
             if (string.IsNullOrEmpty(AccessTokenUri))
             {
@@ -238,8 +240,8 @@ namespace KoenZomers.OneDrive.Api
                         request.Content = content;
 
                         // Request the response from the webservice
-                        var response = await client.SendAsync(request);
-                        var responseBody = await response.Content.ReadAsStringAsync();
+                        var response = await client.SendAsync(request, cancellationToken);
+                        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
 
                         var options = new JsonSerializerOptions();
                         options.Converters.Add(new JsonStringEnumConverter());
@@ -284,15 +286,17 @@ namespace KoenZomers.OneDrive.Api
         /// Gets an access token from the provided authorization token
         /// </summary>
         /// <param name="authorizationToken">Authorization token</param>
+        /// /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>Access token for OneDrive or NULL if unable to retrieve an access token</returns>
-        protected abstract Task<OneDriveAccessToken> GetAccessTokenFromAuthorizationToken(string authorizationToken);
+        protected abstract Task<OneDriveAccessToken> GetAccessTokenFromAuthorizationToken(string authorizationToken, CancellationToken cancellationToken = new());
 
         /// <summary>
         /// Gets an access token from the provided refresh token
         /// </summary>
         /// <param name="refreshToken">Refresh token</param>
+        /// /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>Access token for OneDrive or NULL if unable to retrieve an access token</returns>
-        protected abstract Task<OneDriveAccessToken> GetAccessTokenFromRefreshToken(string refreshToken);
+        protected abstract Task<OneDriveAccessToken> GetAccessTokenFromRefreshToken(string refreshToken, CancellationToken cancellationToken = new());
 
         #endregion
 
@@ -315,111 +319,123 @@ namespace KoenZomers.OneDrive.Api
         /// <summary>
         /// Retrieves the current OneDrive drive information
         /// </summary>
-        public virtual async Task<OneDriveDrive> GetDrive()
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
+        public virtual async Task<OneDriveDrive> GetDrive(CancellationToken cancellationToken = new())
         {
-            return await GetData<OneDriveDrive>("drive");
+            return await GetData<OneDriveDrive>("drive", cancellationToken);
         }
 
         /// <summary>
         /// Retrieves the OneDrive drive information from the provided drive
         /// </summary>
         /// <param name="driveId">Id of the drive to retrieve</param>
-        public virtual async Task<OneDriveDrive> GetDrive(string driveId)
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
+        public virtual async Task<OneDriveDrive> GetDrive(string driveId, CancellationToken cancellationToken = new())
         {
-            return await GetData<OneDriveDrive>($"drives/{driveId}");
+            return await GetData<OneDriveDrive>($"drives/{driveId}", cancellationToken);
         }
 
         /// <summary>
         /// Retrieves the current OneDrive drive information from the provided drive
         /// </summary>
         /// <param name="drive">Drive to retrieve</param>
-        public virtual async Task<OneDriveDrive> GetDrive(OneDriveDrive drive)
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
+        public virtual async Task<OneDriveDrive> GetDrive(OneDriveDrive drive, CancellationToken cancellationToken = new())
         {
-            return await GetDrive(drive.Id);
+            return await GetDrive(drive.Id, cancellationToken);
         }
 
         /// <summary>
         /// Retrieves the OneDrive root folder
         /// </summary>
-        public virtual async Task<OneDriveItem> GetDriveRoot()
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
+        public virtual async Task<OneDriveItem> GetDriveRoot(CancellationToken cancellationToken = new())
         {
-            return await GetData<OneDriveItem>("drive/root");
+            return await GetData<OneDriveItem>("drive/root", cancellationToken);
         }
 
         /// <summary>
         /// Retrieves the first batch of children under the OneDrive root folder
         /// </summary>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItemCollection containing the first batch of items in the root folder</returns>
-        public virtual async Task<OneDriveItemCollection> GetDriveRootChildren()
+        public virtual async Task<OneDriveItemCollection> GetDriveRootChildren(CancellationToken cancellationToken = new())
         {
-            return await GetData<OneDriveItemCollection>("drive/root/children");
+            return await GetData<OneDriveItemCollection>("drive/root/children", cancellationToken);
         }
 
         /// <summary>
         /// Retrieves all the children under the OneDrive root folder
         /// </summary>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem array containing all items in the requested folder</returns>
-        public virtual async Task<OneDriveItem[]> GetAllDriveRootChildren()
+        public virtual async Task<OneDriveItem[]> GetAllDriveRootChildren(CancellationToken cancellationToken = new())
         {
-            return await GetAllChildrenInternal("drive/root/children");
+            return await GetAllChildrenInternal("drive/root/children", cancellationToken);
         }
 
         /// <summary>
         /// Retrieves the first batch of children under the provided OneDrive path. Use GetNextChildrenByPath and provide the NextLink from the results to fetch the next batch.
         /// </summary>
         /// <param name="path">Path within OneDrive to retrieve the child items of</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItemCollection containing the first batch of items in the requested folder</returns>
-        public virtual async Task<OneDriveItemCollection> GetChildrenByPath(string path)
+        public virtual async Task<OneDriveItemCollection> GetChildrenByPath(string path, CancellationToken cancellationToken = new())
         {
-            return await GetData<OneDriveItemCollection>(string.Concat("drive/root:/", path, ":/children"));
+            return await GetData<OneDriveItemCollection>(string.Concat("drive/root:/", path, ":/children"), cancellationToken);
         }
 
         /// <summary>
         /// Retrieves a next batch of children using the provided full SkipToken path
         /// </summary>
         /// <param name="skipTokenUrl">Full URL from a NextLink in the response of a GetChildrenByPath request</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItemCollection containing the next batch of items in the requested folder</returns>
-        public virtual async Task<OneDriveItemCollection> GetNextChildrenByPath(string skipTokenUrl)
+        public virtual async Task<OneDriveItemCollection> GetNextChildrenByPath(string skipTokenUrl, CancellationToken cancellationToken = new())
         {
-            return await GetData<OneDriveItemCollection>(skipTokenUrl);
+            return await GetData<OneDriveItemCollection>(skipTokenUrl, cancellationToken);
         }
 
         /// <summary>
         /// Retrieves all children under the provided OneDrive path
         /// </summary>
         /// <param name="path">Path within OneDrive to retrieve the child items of</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem array containing all items in the requested folder</returns>
-        public virtual async Task<OneDriveItem[]> GetAllChildrenByPath(string path)
+        public virtual async Task<OneDriveItem[]> GetAllChildrenByPath(string path, CancellationToken cancellationToken = new())
         {
-            return await GetAllChildrenInternal(string.Concat("drive/root:/", path, ":/children"));
+            return await GetAllChildrenInternal(string.Concat("drive/root:/", path, ":/children"), cancellationToken);
         }
 
         /// <summary>
         /// Retrieves the first batch of children under the OneDrive folder with the provided id
         /// </summary>
         /// <param name="id">Unique identifier of the folder under which to retrieve the child items</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItemCollection containing the first batch of items in the folder</returns>
-        public virtual async Task<OneDriveItemCollection> GetChildrenByFolderId(string id)
+        public virtual async Task<OneDriveItemCollection> GetChildrenByFolderId(string id, CancellationToken cancellationToken = new())
         {
-            return await GetData<OneDriveItemCollection>(string.Concat("drive/items/", id, "/children"));
+            return await GetData<OneDriveItemCollection>(string.Concat("drive/items/", id, "/children"), cancellationToken);
         }
 
         /// <summary>
         /// Retrieves all the children under the OneDrive folder with the provided id
         /// </summary>
         /// <param name="id">Unique identifier of the folder under which to retrieve the child items</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem array containing all items in the requested folder</returns>
-        public virtual async Task<OneDriveItem[]> GetAllChildrenByFolderId(string id)
+        public virtual async Task<OneDriveItem[]> GetAllChildrenByFolderId(string id, CancellationToken cancellationToken = new())
         {
-            return await GetAllChildrenInternal(string.Concat("drive/items/", id, "/children"));
+            return await GetAllChildrenInternal(string.Concat("drive/items/", id, "/children"), cancellationToken);
         }
 
         /// <summary>
         /// Retrieves the firsth batch of children under the provided OneDrive Item
         /// </summary>
         /// <param name="item">OneDrive item to retrieve the child items of</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItemCollection containing the first batch of items in the folder</returns>
-        public virtual async Task<OneDriveItemCollection> GetChildrenByParentItem(OneDriveItem item)
+        public virtual async Task<OneDriveItemCollection> GetChildrenByParentItem(OneDriveItem item, CancellationToken cancellationToken = new())
         {
             // Construct the complete URL to call
             string completeUrl;
@@ -439,15 +455,16 @@ namespace KoenZomers.OneDrive.Api
                 completeUrl = string.Concat("drive/items/", item.Id, "/children");
             }
 
-            return await GetData<OneDriveItemCollection>(completeUrl);
+            return await GetData<OneDriveItemCollection>(completeUrl, cancellationToken);
         }
 
         /// <summary>
         /// Retrieves all the children under the OneDrive folder with the provided id
         /// </summary>
         /// <param name="item">OneDrive item to retrieve the child items of</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem array containing all items in the requested folder</returns>
-        public virtual async Task<OneDriveItem[]> GetAllChildrenByParentItem(OneDriveItem item)
+        public virtual async Task<OneDriveItem[]> GetAllChildrenByParentItem(OneDriveItem item, CancellationToken cancellationToken = new())
         {
             // Construct the complete URL to call
             string completeUrl;
@@ -467,21 +484,22 @@ namespace KoenZomers.OneDrive.Api
                 completeUrl = string.Concat("drive/items/", item.Id, "/children");
             }
 
-            return await GetAllChildrenInternal(completeUrl);
+            return await GetAllChildrenInternal(completeUrl, cancellationToken);
         }
 
         /// <summary>
         /// Retrieves all the children under the OneDrive folder with the provided id
         /// </summary>
         /// <param name="fetchUrl">Url to use to fetch the first set of child items</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem array containing all items in the requested folder</returns>
-        protected async Task<OneDriveItem[]> GetAllChildrenInternal(string fetchUrl)
+        protected async Task<OneDriveItem[]> GetAllChildrenInternal(string fetchUrl, CancellationToken cancellationToken = new())
         {
             var results = new List<OneDriveItem>();
             do
             {
                 // Retrieve a batch with child items
-                var resultSet = await GetData<OneDriveItemCollection>(fetchUrl);
+                var resultSet = await GetData<OneDriveItemCollection>(fetchUrl, cancellationToken);
 
                 // Add the batch results to the complete list with results
                 results.AddRange(resultSet.Collection);
@@ -500,10 +518,11 @@ namespace KoenZomers.OneDrive.Api
         /// Retrieves the OneDrive Item by its complete path to the file
         /// </summary>
         /// <param name="path">Path of the OneDrive item to retrieve</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem representing the file or NULL if the file was not found</returns>
-        public virtual async Task<OneDriveItem> GetItem(string path)
+        public virtual async Task<OneDriveItem> GetItem(string path, CancellationToken cancellationToken = new())
         {
-            return await GetData<OneDriveItem>(string.Concat("drive/root:/", path));
+            return await GetData<OneDriveItem>(string.Concat("drive/root:/", path), cancellationToken);
         }
 
         /// <summary>
@@ -511,10 +530,11 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="folder">OneDriveItem representing the folder in which the file should reside</param>
         /// <param name="fileName">File name of the file to retrieve</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem representing the file or NULL if the file was not found</returns>
-        public virtual async Task<OneDriveItem> GetItemInFolder(OneDriveItem folder, string fileName)
+        public virtual async Task<OneDriveItem> GetItemInFolder(OneDriveItem folder, string fileName, CancellationToken cancellationToken = new())
         {
-            var itemsInFolder = await GetAllChildrenByParentItem(folder);
+            var itemsInFolder = await GetAllChildrenByParentItem(folder, cancellationToken);
             var item = itemsInFolder.FirstOrDefault(i => string.Equals(i.Name, fileName, StringComparison.InvariantCultureIgnoreCase));
             return item;
         }
@@ -524,22 +544,24 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="folderId">Unique identifier of the folder in which the file should reside</param>
         /// <param name="fileName">File name of the file to retrieve</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem representing the file or NULL if the file was not found</returns>
-        public virtual async Task<OneDriveItem> GetItemInFolder(string folderId, string fileName)
+        public virtual async Task<OneDriveItem> GetItemInFolder(string folderId, string fileName, CancellationToken cancellationToken = new())
         {
-            var folder = await GetItemById(folderId);
+            var folder = await GetItemById(folderId, cancellationToken);
             if (folder == null) return null;
-            return await GetItemInFolder(folder, fileName);
+            return await GetItemInFolder(folder, fileName, cancellationToken);
         }
 
         /// <summary>
         /// Retrieves the OneDrive Item from the current drive by it's unique identifier
         /// </summary>
         /// <param name="id">Unique identifier of the OneDrive item to retrieve</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem representing the file or NULL if the file was not found</returns>
-        public virtual async Task<OneDriveItem> GetItemById(string id)
+        public virtual async Task<OneDriveItem> GetItemById(string id, CancellationToken cancellationToken = new())
         {
-            return await GetData<OneDriveItem>(string.Concat("drive/items/", id));
+            return await GetData<OneDriveItem>(string.Concat("drive/items/", id), cancellationToken);
         }
 
         /// <summary>
@@ -547,10 +569,11 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="id">Unique identifier of the OneDrive item to retrieve</param>
         /// <param name="driveId">Id of the drive on which the item resides</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem representing the file or NULL if the file was not found</returns>
-        public virtual async Task<OneDriveItem> GetItemFromDriveById(string id, string driveId)
+        public virtual async Task<OneDriveItem> GetItemFromDriveById(string id, string driveId, CancellationToken cancellationToken = new())
         {
-            return await GetData<OneDriveItem>(string.Concat("drives/", driveId, "/items/", id));
+            return await GetData<OneDriveItem>(string.Concat("drives/", driveId, "/items/", id), cancellationToken);
         }
 
         /// <summary>
@@ -558,10 +581,11 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="id">Unique identifier of the OneDrive item to retrieve</param>
         /// <param name="drive">Drive on which the item resides</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem representing the file or NULL if the file was not found</returns>
-        public virtual async Task<OneDriveItem> GetItemFromDriveById(string id, OneDriveDrive drive)
+        public virtual async Task<OneDriveItem> GetItemFromDriveById(string id, OneDriveDrive drive, CancellationToken cancellationToken = new())
         {
-            return await GetData<OneDriveItem>(string.Concat("drives/", drive.Id, "/items/", id));
+            return await GetData<OneDriveItem>(string.Concat("drives/", drive.Id, "/items/", id), cancellationToken);
         }
 
         /// <summary>
@@ -569,8 +593,9 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="path">Path of the OneDrive folder to retrieve or create. It will ensure that the whole provided path exists and create (sub)folders if they don't exist yet</param>
         /// <example>Files\Work\Contracts</example>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem representing the folder designated in the path</returns>
-        public virtual async Task<OneDriveItem> GetFolderOrCreate(string path)
+        public virtual async Task<OneDriveItem> GetFolderOrCreate(string path, CancellationToken cancellationToken = new())
         {
             // Replace possible forward slashes with backslashes
             path = path.Replace("/", "\\");
@@ -594,7 +619,7 @@ namespace KoenZomers.OneDrive.Api
             // Folder not found, create it
             var folderName = path.Contains("\\") ? path.Remove(0, path.LastIndexOf("\\", StringComparison.Ordinal) + 1) : path;
             var parentPath = path.Contains("\\") ? path.Remove(path.Length - folderName.Length - 1) : "";
-            folder = await CreateFolder(parentPath, folderName);
+            folder = await CreateFolder(parentPath, folderName, cancellationToken);
 
             return folder;
         }
@@ -602,43 +627,48 @@ namespace KoenZomers.OneDrive.Api
         /// <summary>
         /// Retrieves the items in the CameraRoll folder
         /// </summary>
-        public virtual async Task<OneDriveItemCollection> GetDriveCameraRollFolder()
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
+        public virtual async Task<OneDriveItemCollection> GetDriveCameraRollFolder(CancellationToken cancellationToken = new())
         {
-            return await GetData<OneDriveItemCollection>("drive/special/cameraroll");
+            return await GetData<OneDriveItemCollection>("drive/special/cameraroll", cancellationToken);
         }
 
         /// <summary>
         /// Retrieves the items in the Documents folder
         /// </summary>
-        public virtual async Task<OneDriveItemCollection> GetDriveDocumentsFolder()
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
+        public virtual async Task<OneDriveItemCollection> GetDriveDocumentsFolder(CancellationToken cancellationToken = new())
         {
-            return await GetData<OneDriveItemCollection>("drive/special/documents");
+            return await GetData<OneDriveItemCollection>("drive/special/documents", cancellationToken);
         }
 
         /// <summary>
         /// Retrieves the items in the Photos folder
         /// </summary>
-        public virtual async Task<OneDriveItemCollection> GetDrivePhotosFolder()
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
+        public virtual async Task<OneDriveItemCollection> GetDrivePhotosFolder(CancellationToken cancellationToken = new())
         {
-            return await GetData<OneDriveItemCollection>("drive/special/photos");
+            return await GetData<OneDriveItemCollection>("drive/special/photos", cancellationToken);
         }
 
         /// <summary>
         /// Retrieves the items in the Public folder
         /// </summary>
-        public virtual async Task<OneDriveItemCollection> GetDrivePublicFolder()
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
+        public virtual async Task<OneDriveItemCollection> GetDrivePublicFolder(CancellationToken cancellationToken = new())
         {
-            return await GetData<OneDriveItemCollection>("drive/special/public");
+            return await GetData<OneDriveItemCollection>("drive/special/public", cancellationToken);
         }
 
         /// <summary>
         /// Searches for items on OneDrive with the provided query
         /// </summary>
         /// <param name="query">Search query to use</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>All OneDrive items resulting from the search</returns>
-        public virtual async Task<IList<OneDriveItem>> Search(string query)
+        public virtual async Task<IList<OneDriveItem>> Search(string query, CancellationToken cancellationToken = new())
         {
-            return await SearchInternal(string.Concat("drive/root/view.search?q=", query));
+            return await SearchInternal(string.Concat("drive/root/view.search?q=", query), cancellationToken);
         }
 
         /// <summary>
@@ -646,10 +676,11 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="query">Search query to use</param>
         /// <param name="path">OneDrive path where to search in</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>All OneDrive items resulting from the search</returns>
-        public virtual async Task<IList<OneDriveItem>> Search(string query, string path)
+        public virtual async Task<IList<OneDriveItem>> Search(string query, string path, CancellationToken cancellationToken = new())
         {
-            return await SearchInternal(string.Concat("drive/root:/", path, "/view.search?q=", query));
+            return await SearchInternal(string.Concat("drive/root:/", path, "/view.search?q=", query), cancellationToken);
         }
 
         /// <summary>
@@ -657,17 +688,19 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="query">Search query to use</param>
         /// <param name="oneDriveItem">OneDrive item representing a folder to search in</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>All OneDrive items resulting from the search</returns>
-        public virtual async Task<IList<OneDriveItem>> Search(string query, OneDriveItem oneDriveItem)
+        public virtual async Task<IList<OneDriveItem>> Search(string query, OneDriveItem oneDriveItem, CancellationToken cancellationToken = new())
         {
-            return await SearchInternal(string.Concat("drive/items/", oneDriveItem.Id, "/view.search?q=", query));
+            return await SearchInternal(string.Concat("drive/items/", oneDriveItem.Id, "/view.search?q=", query), cancellationToken);
         }
 
         /// <summary>
         /// Deletes the provided OneDriveItem from OneDrive
         /// </summary>
         /// <param name="oneDriveItem">The OneDriveItem reference to delete from OneDrive</param>
-        public virtual async Task<bool> Delete(OneDriveItem oneDriveItem)
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
+        public virtual async Task<bool> Delete(OneDriveItem oneDriveItem, CancellationToken cancellationToken = new())
         {
             // Construct the complete URL to call
             string completeUrl;
@@ -687,16 +720,17 @@ namespace KoenZomers.OneDrive.Api
                 completeUrl = string.Concat("drive/items/", oneDriveItem.Id);
             }
 
-            return await DeleteItemInternal(completeUrl);
+            return await DeleteItemInternal(completeUrl, cancellationToken);
         }
 
         /// <summary>
         /// Deletes the provided OneDriveItem from OneDrive
         /// </summary>
         /// <param name="oneDriveItemPath">The path to the OneDrive item to delete from OneDrive</param>
-        public virtual async Task<bool> Delete(string oneDriveItemPath)
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
+        public virtual async Task<bool> Delete(string oneDriveItemPath, CancellationToken cancellationToken = new())
         {
-            return await DeleteItemInternal(string.Concat("drive/root:/", oneDriveItemPath));
+            return await DeleteItemInternal(string.Concat("drive/root:/", oneDriveItemPath), cancellationToken);
         }
 
         /// <summary>
@@ -705,12 +739,13 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="oneDriveSourceItemPath">The path to the OneDrive Item to be copied</param>
         /// <param name="oneDriveDestinationItemPath">The path to the OneDrive parent item to copy the item into</param>
         /// <param name="destinationName">The name of the item at the destination where it will be copied to. Omit to use the source name.</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>True if successful, false if failed</returns>
-        public virtual async Task<bool> Copy(string oneDriveSourceItemPath, string oneDriveDestinationItemPath, string destinationName = null)
+        public virtual async Task<bool> Copy(string oneDriveSourceItemPath, string oneDriveDestinationItemPath, string destinationName = null, CancellationToken cancellationToken = new())
         {
             var oneDriveSourceItem = await GetItem(oneDriveSourceItemPath);
             var oneDriveDestinationItem = await GetItem(oneDriveDestinationItemPath);
-            return await Copy(oneDriveSourceItem, oneDriveDestinationItem, destinationName);
+            return await Copy(oneDriveSourceItem, oneDriveDestinationItem, destinationName, cancellationToken);
         }
 
         /// <summary>
@@ -719,10 +754,11 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="oneDriveSourceItem">The path to the OneDrive Item to be copied</param>
         /// <param name="oneDriveDestinationItem">The path tothe OneDrive parent item to copy the item into</param>
         /// <param name="destinationName">The name of the item at the destination where it will be copied to. Omit to use the source name.</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>True if successful, false if failed</returns>
-        public virtual async Task<bool> Copy(OneDriveItem oneDriveSourceItem, OneDriveItem oneDriveDestinationItem, string destinationName = null)
+        public virtual async Task<bool> Copy(OneDriveItem oneDriveSourceItem, OneDriveItem oneDriveDestinationItem, string destinationName = null, CancellationToken cancellationToken = new())
         {
-            return await CopyItemInternal(oneDriveSourceItem, oneDriveDestinationItem, destinationName);
+            return await CopyItemInternal(oneDriveSourceItem, oneDriveDestinationItem, destinationName, cancellationToken);
         }
 
         /// <summary>
@@ -730,12 +766,13 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="oneDriveSourceItemPath">The path to the OneDrive Item to be moved</param>
         /// <param name="oneDriveDestinationItemPath">The path to the OneDrive parent item to move the item into</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>True if successful, false if failed</returns>
-        public virtual async Task<bool> Move(string oneDriveSourceItemPath, string oneDriveDestinationItemPath)
+        public virtual async Task<bool> Move(string oneDriveSourceItemPath, string oneDriveDestinationItemPath, CancellationToken cancellationToken = new())
         {
             var oneDriveSourceItem = await GetItem(oneDriveSourceItemPath);
             var oneDriveDestinationItem = await GetItem(oneDriveDestinationItemPath);
-            return await Move(oneDriveSourceItem, oneDriveDestinationItem);
+            return await Move(oneDriveSourceItem, oneDriveDestinationItem, cancellationToken);
         }
 
         /// <summary>
@@ -743,10 +780,11 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="oneDriveSourceItem">The OneDrive Item to be moved</param>
         /// <param name="oneDriveDestinationItem">The OneDrive parent item to move the item into</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>True if successful, false if failed</returns>
-        public virtual async Task<bool> Move(OneDriveItem oneDriveSourceItem, OneDriveItem oneDriveDestinationItem)
+        public virtual async Task<bool> Move(OneDriveItem oneDriveSourceItem, OneDriveItem oneDriveDestinationItem, CancellationToken cancellationToken = new())
         {
-            return await MoveItemInternal(oneDriveSourceItem, oneDriveDestinationItem);
+            return await MoveItemInternal(oneDriveSourceItem, oneDriveDestinationItem, cancellationToken);
         }
 
         /// <summary>
@@ -754,11 +792,12 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="oneDriveItemPath">The path to the OneDrive Item to be renamed</param>
         /// <param name="name">The new name to assign to the OneDrive item</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>True if successful, false if failed</returns>
-        public virtual async Task<bool> Rename(string oneDriveItemPath, string name)
+        public virtual async Task<bool> Rename(string oneDriveItemPath, string name, CancellationToken cancellationToken = new())
         {
             var oneDriveItem = await GetItem(oneDriveItemPath);
-            return await Rename(oneDriveItem, name);
+            return await Rename(oneDriveItem, name, cancellationToken);
         }
 
         /// <summary>
@@ -766,10 +805,11 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="oneDriveItemPath">The OneDrive Item to be renamed</param>
         /// <param name="name">The new name to assign to the OneDrive item</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>True if successful, false if failed</returns>
-        public virtual async Task<bool> Rename(OneDriveItem oneDriveItemPath, string name)
+        public virtual async Task<bool> Rename(OneDriveItem oneDriveItemPath, string name, CancellationToken cancellationToken = new())
         {
-            return await RenameItemInternal(oneDriveItemPath, name);
+            return await RenameItemInternal(oneDriveItemPath, name, cancellationToken);
         }
 
         /// <summary>
@@ -777,11 +817,12 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="path">Path to an item on OneDrive to download its contents of</param>
         /// <param name="saveTo">Path where to save the file to. The same filename as used on OneDrive will be used to save the file under.</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>True if download was successful, false if it failed</returns>
-        public virtual async Task<bool> DownloadItem(string path, string saveTo)
+        public virtual async Task<bool> DownloadItem(string path, string saveTo, CancellationToken cancellationToken = new())
         {
             var oneDriveItem = await GetItem(path);
-            return await DownloadItem(oneDriveItem, saveTo);
+            return await DownloadItem(oneDriveItem, saveTo, cancellationToken);
         }
 
         /// <summary>
@@ -789,10 +830,11 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="oneDriveItem">OneDriveItem to download its contents of</param>
         /// <param name="saveTo">Path where to save the file to. The same filename as used on OneDrive will be used to save the file under.</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>True if download was successful, false if it failed</returns>
-        public virtual async Task<bool> DownloadItem(OneDriveItem oneDriveItem, string saveTo)
+        public virtual async Task<bool> DownloadItem(OneDriveItem oneDriveItem, string saveTo, CancellationToken cancellationToken = new())
         {
-            return await DownloadItemAndSaveAs(oneDriveItem, Path.Combine(saveTo, oneDriveItem.Name));
+            return await DownloadItemAndSaveAs(oneDriveItem, Path.Combine(saveTo, oneDriveItem.Name), cancellationToken);
         }
 
         /// <summary>
@@ -800,11 +842,12 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="path">Path to an item on OneDrive to download its contents of</param>
         /// <param name="saveAs">Full path including filename where to store the downloaded file</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>True if download was successful, false if it failed</returns>
-        public virtual async Task<bool> DownloadItemAndSaveAs(string path, string saveAs)
+        public virtual async Task<bool> DownloadItemAndSaveAs(string path, string saveAs, CancellationToken cancellationToken = new())
         {
             var oneDriveItem = await GetItem(path);
-            return await DownloadItemAndSaveAs(oneDriveItem, saveAs);
+            return await DownloadItemAndSaveAs(oneDriveItem, saveAs, cancellationToken);
         }
 
         /// <summary>
@@ -812,8 +855,9 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="oneDriveItem">OneDriveItem to download its contents of</param>
         /// <param name="saveAs">Full path including filename where to store the downloaded file</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>True if download was successful, false if it failed</returns>
-        public virtual async Task<bool> DownloadItemAndSaveAs(OneDriveItem oneDriveItem, string saveAs)
+        public virtual async Task<bool> DownloadItemAndSaveAs(OneDriveItem oneDriveItem, string saveAs, CancellationToken cancellationToken = new())
         {
             // Construct the complete URL to call
             string completeUrl;
@@ -835,11 +879,11 @@ namespace KoenZomers.OneDrive.Api
 
             completeUrl = ConstructCompleteUrl(completeUrl);
 
-            using (var stream = await DownloadItemInternal(oneDriveItem, completeUrl))
+            using (var stream = await DownloadItemInternal(oneDriveItem, completeUrl, cancellationToken))
             {
                 using (var outputStream = new FileStream(saveAs, FileMode.Create))
                 {
-                    await stream.CopyToAsync(outputStream);
+                    await stream.CopyToAsync(outputStream, cancellationToken);
                 }
             }
             return true;
@@ -849,19 +893,21 @@ namespace KoenZomers.OneDrive.Api
         /// Downloads the contents of the item on OneDrive at the provided path and returns the contents as a stream
         /// </summary>
         /// <param name="path">Path to an item on OneDrive to download its contents of</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>Stream with the contents of the item on OneDrive</returns>
-        public virtual async Task<Stream> DownloadItem(string path)
+        public virtual async Task<Stream> DownloadItem(string path, CancellationToken cancellationToken = new())
         {
             var oneDriveItem = await GetItem(path);
-            return await DownloadItem(oneDriveItem);
+            return await DownloadItem(oneDriveItem, cancellationToken);
         }
 
         /// <summary>
         /// Downloads the contents of the provided OneDriveItem and returns the contents as a stream
         /// </summary>
         /// <param name="oneDriveItem">OneDriveItem to download its contents of</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>Stream with the contents of the item on OneDrive</returns>
-        public virtual async Task<Stream> DownloadItem(OneDriveItem oneDriveItem)
+        public virtual async Task<Stream> DownloadItem(OneDriveItem oneDriveItem, CancellationToken cancellationToken = new())
         {
             // Construct the complete URL to call
             string completeUrl;
@@ -883,7 +929,7 @@ namespace KoenZomers.OneDrive.Api
 
             completeUrl = ConstructCompleteUrl(completeUrl);
 
-            return await DownloadItemInternal(oneDriveItem, completeUrl);
+            return await DownloadItemInternal(oneDriveItem, completeUrl, cancellationToken);
         }
 
         /// <summary>
@@ -891,8 +937,9 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="filePath">Full path to the file to upload</param>
         /// <param name="oneDriveItem">OneDriveItem the item of which its contents should be updated</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem representing the uploaded file when successful or NULL when the upload failed</returns>
-        public virtual async Task<OneDriveItem> UpdateFile(string filePath, OneDriveItem oneDriveItem)
+        public virtual async Task<OneDriveItem> UpdateFile(string filePath, OneDriveItem oneDriveItem, CancellationToken cancellationToken = new())
         {
             if (!File.Exists(filePath))
             {
@@ -912,11 +959,11 @@ namespace KoenZomers.OneDrive.Api
             if (fileToUpload.Length <= MaximumBasicFileUploadSizeInBytes)
             {
                 // Use the basic upload method                
-                return await UpdateFileViaSimpleUpload(fileToUpload, oneDriveItem);
+                return await UpdateFileViaSimpleUpload(fileToUpload, oneDriveItem, cancellationToken);
             }
 
             // Use the resumable upload method
-            return await UpdateFileViaResumableUpload(fileToUpload, oneDriveItem, null);
+            return await UpdateFileViaResumableUpload(fileToUpload, oneDriveItem, null, cancellationToken);
         }
 
         /// <summary>
@@ -924,10 +971,11 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="filePath">Full path to the file to upload</param>
         /// <param name="parentFolder">OneDriveItem of the folder to which the file should be uploaded</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem representing the uploaded file when successful or NULL when the upload failed</returns>
-        public virtual async Task<OneDriveItem> UploadFile(string filePath, OneDriveItem parentFolder)
+        public virtual async Task<OneDriveItem> UploadFile(string filePath, OneDriveItem parentFolder, CancellationToken cancellationToken = new())
         {
-            return await UploadFileAs(filePath, null, parentFolder);
+            return await UploadFileAs(filePath, null, parentFolder, cancellationToken);
         }
 
         /// <summary>
@@ -935,11 +983,12 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="filePath">Full path to the file to upload</param>
         /// <param name="oneDriveFolder">Path to a OneDrive folder where to upload the file to</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem representing the uploaded file when successful or NULL when the upload failed</returns>
-        public virtual async Task<OneDriveItem> UploadFile(string filePath, string oneDriveFolder)
+        public virtual async Task<OneDriveItem> UploadFile(string filePath, string oneDriveFolder, CancellationToken cancellationToken = new())
         {
             var oneDriveItem = await GetItem(oneDriveFolder);
-            return await UploadFile(filePath, oneDriveItem);
+            return await UploadFile(filePath, oneDriveItem, cancellationToken);
         }
 
         /// <summary>
@@ -948,11 +997,12 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="filePath">Full path to the file to upload</param>
         /// <param name="fileName">Filename to assign to the file on OneDrive</param>
         /// <param name="oneDriveFolder">Path to a OneDrive folder where to upload the file to</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem representing the uploaded file when successful or NULL when the upload failed</returns>
-        public virtual async Task<OneDriveItem> UploadFileAs(string filePath, string fileName, string oneDriveFolder)
+        public virtual async Task<OneDriveItem> UploadFileAs(string filePath, string fileName, string oneDriveFolder, CancellationToken cancellationToken = new())
         {
             var oneDriveItem = await GetItem(oneDriveFolder);
-            return await UploadFileAs(filePath, fileName, oneDriveItem);
+            return await UploadFileAs(filePath, fileName, oneDriveItem, cancellationToken);
         }
 
         /// <summary>
@@ -961,11 +1011,12 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="fileStream">Stream to the file to upload</param>
         /// <param name="fileName">Filename to assign to the file on OneDrive</param>
         /// <param name="oneDriveFolder">Path to a OneDrive folder where to upload the file to</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem representing the uploaded file when successful or NULL when the upload failed</returns>
-        public virtual async Task<OneDriveItem> UploadFileAs(Stream fileStream, string fileName, string oneDriveFolder)
+        public virtual async Task<OneDriveItem> UploadFileAs(Stream fileStream, string fileName, string oneDriveFolder, CancellationToken cancellationToken = new())
         {
             var oneDriveItem = await GetItem(oneDriveFolder);
-            return await UploadFileAs(fileStream, fileName, oneDriveItem);
+            return await UploadFileAs(fileStream, fileName, oneDriveItem, cancellationToken);
         }
 
         /// <summary>
@@ -974,8 +1025,9 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="filePath">Full path to the file to upload</param>
         /// <param name="fileName">Filename to assign to the file on OneDrive</param>
         /// <param name="parentFolder">OneDriveItem of the folder to which the file should be uploaded</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem representing the uploaded file when successful or NULL when the upload failed</returns>
-        public virtual async Task<OneDriveItem> UploadFileAs(string filePath, string fileName, OneDriveItem parentFolder)
+        public virtual async Task<OneDriveItem> UploadFileAs(string filePath, string fileName, OneDriveItem parentFolder, CancellationToken cancellationToken = new())
         {
             if (!File.Exists(filePath))
             {
@@ -1001,11 +1053,11 @@ namespace KoenZomers.OneDrive.Api
             if (fileToUpload.Length <= MaximumBasicFileUploadSizeInBytes)
             {
                 // Use the basic upload method                
-                return await UploadFileViaSimpleUpload(fileToUpload, fileName, parentFolder);
+                return await UploadFileViaSimpleUpload(fileToUpload, fileName, parentFolder, cancellationToken);
             }
 
             // Use the resumable upload method
-            return await UploadFileViaResumableUpload(fileToUpload, fileName, parentFolder, null);
+            return await UploadFileViaResumableUpload(fileToUpload, fileName, parentFolder, null, cancellationToken);
         }
 
         /// <summary>
@@ -1014,8 +1066,9 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="fileStream">Stream to the file to upload</param>
         /// <param name="fileName">Filename to assign to the file on OneDrive</param>
         /// <param name="parentFolder">OneDriveItem of the folder to which the file should be uploaded</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem representing the uploaded file when successful or NULL when the upload failed</returns>
-        public virtual async Task<OneDriveItem> UploadFileAs(Stream fileStream, string fileName, OneDriveItem parentFolder)
+        public virtual async Task<OneDriveItem> UploadFileAs(Stream fileStream, string fileName, OneDriveItem parentFolder, CancellationToken cancellationToken = new())
         {
             if (fileStream == null || fileStream == Stream.Null)
             {
@@ -1040,11 +1093,11 @@ namespace KoenZomers.OneDrive.Api
             if (fileStream.Length <= MaximumBasicFileUploadSizeInBytes)
             {
                 // Use the basic upload method                
-                return await UploadFileViaSimpleUpload(fileStream, fileName, parentFolder);
+                return await UploadFileViaSimpleUpload(fileStream, fileName, parentFolder, cancellationToken);
             }
 
             // Use the resumable upload method
-            return await UploadFileViaResumableUpload(fileStream, fileName, parentFolder, null);
+            return await UploadFileViaResumableUpload(fileStream, fileName, parentFolder, null, cancellationToken);
         }
 
         /// <summary>
@@ -1052,10 +1105,11 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="parentPath">The path to the OneDrive folder under which the folder should be created</param>
         /// <param name="folderName">Name to assign to the new folder</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem entity representing the newly created folder or NULL if the operation fails</returns>
-        public virtual async Task<OneDriveItem> CreateFolder(string parentPath, string folderName)
+        public virtual async Task<OneDriveItem> CreateFolder(string parentPath, string folderName, CancellationToken cancellationToken = new())
         {
-            return await CreateFolderInternal(!string.IsNullOrEmpty(parentPath) ? string.Concat("drive/root:/", parentPath, ":/children") : "drive/root/children", folderName);
+            return await CreateFolderInternal(!string.IsNullOrEmpty(parentPath) ? string.Concat("drive/root:/", parentPath, ":/children") : "drive/root/children", folderName, cancellationToken);
         }
 
         /// <summary>
@@ -1063,8 +1117,9 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="parentItem">The OneDrive item under which the folder should be created</param>
         /// <param name="folderName">Name to assign to the new folder</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem entity representing the newly created folder or NULL if the operation fails</returns>
-        public virtual async Task<OneDriveItem> CreateFolder(OneDriveItem parentItem, string folderName)
+        public virtual async Task<OneDriveItem> CreateFolder(OneDriveItem parentItem, string folderName, CancellationToken cancellationToken = new())
         {
             // Construct the complete URL to call
             string completeUrl;
@@ -1080,7 +1135,7 @@ namespace KoenZomers.OneDrive.Api
                 completeUrl = string.Concat("drive/items/", parentItem.Id, "/children");
             }
 
-            return await CreateFolderInternal(completeUrl, folderName);
+            return await CreateFolderInternal(completeUrl, folderName, cancellationToken);
         }
 
         /// <summary>
@@ -1088,10 +1143,11 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="itemPath">The path to the OneDrive item to share</param>
         /// <param name="linkType">Type of sharing to request</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDrivePermission entity representing the share or NULL if the operation fails</returns>
-        public virtual async Task<OneDrivePermission> ShareItem(string itemPath, OneDriveLinkType linkType)
+        public virtual async Task<OneDrivePermission> ShareItem(string itemPath, OneDriveLinkType linkType, CancellationToken cancellationToken = new())
         {
-            return await ShareItemInternal(string.Concat("drive/root:/", itemPath, ":/oneDrive.createLink"), linkType);
+            return await ShareItemInternal(string.Concat("drive/root:/", itemPath, ":/oneDrive.createLink"), linkType, cancellationToken: cancellationToken);
         }
 
         /// <summary>
@@ -1099,19 +1155,21 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="item">The OneDrive item to share</param>
         /// <param name="linkType">Type of sharing to request</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDrivePermission entity representing the share or NULL if the operation fails</returns>
-        public virtual async Task<OneDrivePermission> ShareItem(OneDriveItem item, OneDriveLinkType linkType)
+        public virtual async Task<OneDrivePermission> ShareItem(OneDriveItem item, OneDriveLinkType linkType, CancellationToken cancellationToken = new())
         {
-            return await ShareItemInternal(string.Concat("drive/items/", item.Id, "/oneDrive.createLink"), linkType);
+            return await ShareItemInternal(string.Concat("drive/items/", item.Id, "/oneDrive.createLink"), linkType, cancellationToken: cancellationToken);
         }
 
         /// <summary>
         /// Returns all the items that have been shared by others with the current user
         /// </summary>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>Collection with items that have been shared by others with the current user</returns>
-        public virtual async Task<OneDriveItemCollection> GetSharedWithMe()
+        public virtual async Task<OneDriveItemCollection> GetSharedWithMe(CancellationToken cancellationToken = new())
         {
-            var oneDriveItems = await GetData<OneDriveItemCollection>("drive/oneDrive.sharedWithMe");
+            var oneDriveItems = await GetData<OneDriveItemCollection>("drive/oneDrive.sharedWithMe", cancellationToken);
             return oneDriveItems;
         }
 
@@ -1120,10 +1178,11 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="folderId">Id of the folder to retrieve the items of</param>
         /// <param name="driveId">Id of the drive on which the folder resides</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItemCollection containing the first batch of items in the folder</returns>
-        public async Task<OneDriveItemCollection> GetChildrenFromDriveByFolderId(string driveId, string folderId)
+        public async Task<OneDriveItemCollection> GetChildrenFromDriveByFolderId(string driveId, string folderId, CancellationToken cancellationToken = new())
         {
-            var oneDriveItems = await GetData<OneDriveItemCollection>($"drives/{driveId}/items/{folderId}/children");
+            var oneDriveItems = await GetData<OneDriveItemCollection>($"drives/{driveId}/items/{folderId}/children", cancellationToken);
             return oneDriveItems;
         }
 
@@ -1132,10 +1191,11 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="folder">Folder to retrieve the items of</param>
         /// <param name="drive">Drive on which the folder resides</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItemCollection containing the first batch of items in the folder</returns>
-        public async Task<OneDriveItemCollection> GetChildrenFromDriveByFolderId(OneDriveDrive drive, OneDriveItem folder)
+        public async Task<OneDriveItemCollection> GetChildrenFromDriveByFolderId(OneDriveDrive drive, OneDriveItem folder, CancellationToken cancellationToken = new())
         {
-            var oneDriveItems = await GetChildrenFromDriveByFolderId(drive.Id, folder.Id);
+            var oneDriveItems = await GetChildrenFromDriveByFolderId(drive.Id, folder.Id, cancellationToken);
             return oneDriveItems;
         }
 
@@ -1144,10 +1204,11 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="folderId">Id of the folder to retrieve the items of</param>
         /// <param name="driveId">Id of the drive on which the folder resides</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem array containing all items in the requested folder</returns>
-        public virtual async Task<OneDriveItem[]> GetAllChildrenFromDriveByFolderId(string driveId, string folderId)
+        public virtual async Task<OneDriveItem[]> GetAllChildrenFromDriveByFolderId(string driveId, string folderId, CancellationToken cancellationToken = new())
         {
-            return await GetAllChildrenInternal($"drives/{driveId}/items/{folderId}/children");
+            return await GetAllChildrenInternal($"drives/{driveId}/items/{folderId}/children", cancellationToken);
         }
 
         /// <summary>
@@ -1155,10 +1216,11 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="folder">Folder to retrieve the items of</param>
         /// <param name="drive">Drive on which the folder resides</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem array containing all items in the requested folder</returns>
-        public virtual async Task<OneDriveItem[]> GetAllChildrenFromDriveByFolderId(OneDriveDrive drive, OneDriveItem folder)
+        public virtual async Task<OneDriveItem[]> GetAllChildrenFromDriveByFolderId(OneDriveDrive drive, OneDriveItem folder, CancellationToken cancellationToken = new())
         {
-            return await GetAllChildrenFromDriveByFolderId(drive.Id, folder.Id);
+            return await GetAllChildrenFromDriveByFolderId(drive.Id, folder.Id, cancellationToken);
         }
 
         #endregion
@@ -1171,8 +1233,9 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="oneDriveRequestUrl">The OneDrive request url which creates the share</param>
         /// <param name="linkType">Type of sharing to request</param>
         /// <param name="scope">Scope defining who has access to the shared item (not supported with OneDrive Personal)</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDrivePermission entity representing the share or NULL if the operation fails</returns>
-        protected virtual async Task<OneDrivePermission> ShareItemInternal(string oneDriveRequestUrl, OneDriveLinkType linkType, OneDriveSharingScope? scope = null)
+        protected virtual async Task<OneDrivePermission> ShareItemInternal(string oneDriveRequestUrl, OneDriveLinkType linkType, OneDriveSharingScope? scope = null, CancellationToken cancellationToken = new())
         {
             // Construct the complete URL to call
             var completeUrl = ConstructCompleteUrl(oneDriveRequestUrl);
@@ -1181,7 +1244,7 @@ namespace KoenZomers.OneDrive.Api
             var requestShare = new OneDriveRequestShare { SharingType = linkType, Scope = scope };
 
             // Call the OneDrive webservice
-            var result = await SendMessageReturnOneDriveItem<OneDrivePermission>(requestShare, HttpMethod.Post, completeUrl);
+            var result = await SendMessageReturnOneDriveItem<OneDrivePermission>(requestShare, HttpMethod.Post, completeUrl, cancellationToken: cancellationToken);
             return result;
         }
 
@@ -1190,8 +1253,9 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="oneDriveRequestUrl">The OneDrive request url which creates a new folder</param>
         /// <param name="folderName">Name to assign to the new folder</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem entity representing the newly created folder or NULL if the operation fails</returns>
-        protected virtual async Task<OneDriveItem> CreateFolderInternal(string oneDriveRequestUrl, string folderName)
+        protected virtual async Task<OneDriveItem> CreateFolderInternal(string oneDriveRequestUrl, string folderName, CancellationToken cancellationToken = new())
         {
             // Construct the complete URL to call
             var completeUrl = ConstructCompleteUrl(oneDriveRequestUrl);            
@@ -1200,7 +1264,7 @@ namespace KoenZomers.OneDrive.Api
             var newFolder = new OneDriveCreateFolder { Name = folderName, Folder = new object() };
 
             // Send the webservice request
-            var oneDriveItem = await SendMessageReturnOneDriveItem<OneDriveItem>(newFolder, HttpMethod.Post, completeUrl, HttpStatusCode.Created);
+            var oneDriveItem = await SendMessageReturnOneDriveItem<OneDriveItem>(newFolder, HttpMethod.Post, completeUrl, HttpStatusCode.Created, cancellationToken);
             return oneDriveItem;
         }
 
@@ -1208,8 +1272,9 @@ namespace KoenZomers.OneDrive.Api
         /// Searches OneDrive by calling the OneDrive API url as provided
         /// </summary>
         /// <param name="searchUrl">OneDrive API url representing the search to execute</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>List with OneDriveItem objects resulting from the search query</returns>
-        protected async Task<IList<OneDriveItem>> SearchInternal(string searchUrl)
+        protected async Task<IList<OneDriveItem>> SearchInternal(string searchUrl, CancellationToken cancellationToken = new())
         {
             // Create a list to contain all the search results
             var allResults = new List<OneDriveItem>();
@@ -1221,7 +1286,7 @@ namespace KoenZomers.OneDrive.Api
             do
             {
                 // Execute the search query against the OneDrive API
-                var results = await GetData<OneDriveItemCollection>(nextSearchUrl);
+                var results = await GetData<OneDriveItemCollection>(nextSearchUrl, cancellationToken);
 
                 // Add the retrieved results to the list
                 allResults.AddRange(results.Collection);
@@ -1246,8 +1311,9 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="item">OneDriveItem to download its contents of</param>
         /// <param name="completeUrl">Complete URL from where to download the file</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>Stream with the downloaded content</returns>
-        protected virtual async Task<Stream> DownloadItemInternal(OneDriveItem item, string completeUrl)
+        protected virtual async Task<Stream> DownloadItemInternal(OneDriveItem item, string completeUrl, CancellationToken cancellationToken = new())
         {
             // Get an access token to perform the request to OneDrive
             var accessToken = await GetAccessToken();
@@ -1256,7 +1322,7 @@ namespace KoenZomers.OneDrive.Api
             var client = CreateHttpClient(accessToken.AccessToken);
 
             // Send the request to the OneDrive API
-            var response = await client.GetAsync(completeUrl);
+            var response = await client.GetAsync(completeUrl, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -1264,7 +1330,7 @@ namespace KoenZomers.OneDrive.Api
             }
 
             // Download the file from OneDrive and return the stream
-            var downloadStream = await response.Content.ReadAsStreamAsync();
+            var downloadStream = await response.Content.ReadAsStreamAsync(cancellationToken);
             return downloadStream;
         }
 
@@ -1273,12 +1339,13 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="filePath">File reference to the file to upload</param>
         /// <param name="oneDriveItem">OneDriveItem of the folder to which the file should be uploaded</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>The resulting OneDrive item representing the uploaded file</returns>
-        public async Task<OneDriveItem> UploadFileViaSimpleUpload(string filePath, OneDriveItem oneDriveItem)
+        public async Task<OneDriveItem> UploadFileViaSimpleUpload(string filePath, OneDriveItem oneDriveItem, CancellationToken cancellationToken = new())
         {
             // Read the file to upload
             var fileInfo = new FileInfo(filePath);
-            return await UpdateFileViaSimpleUpload(fileInfo, oneDriveItem);
+            return await UpdateFileViaSimpleUpload(fileInfo, oneDriveItem, cancellationToken);
         }
 
         /// <summary>
@@ -1286,12 +1353,13 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="file">FileInfo reference to the file to upload</param>
         /// <param name="oneDriveItem">OneDriveItem of the folder to which the file should be uploaded</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>The resulting OneDrive item representing the uploaded file</returns>
-        public async Task<OneDriveItem> UpdateFileViaSimpleUpload(FileInfo file, OneDriveItem oneDriveItem)
+        public async Task<OneDriveItem> UpdateFileViaSimpleUpload(FileInfo file, OneDriveItem oneDriveItem, CancellationToken cancellationToken = new())
         {
             using (var fileStream = file.OpenRead())
             {
-                return await UpdateFileViaSimpleUpload(fileStream, oneDriveItem);
+                return await UpdateFileViaSimpleUpload(fileStream, oneDriveItem, cancellationToken);
             }
         }
 
@@ -1300,8 +1368,9 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="fileStream">Stream to the file to upload</param>
         /// <param name="oneDriveItem">OneDriveItem of the existing item that should be updated on OneDrive</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>The resulting OneDrive item representing the uploaded file</returns>
-        public async Task<OneDriveItem> UpdateFileViaSimpleUpload(Stream fileStream, OneDriveItem oneDriveItem)
+        public async Task<OneDriveItem> UpdateFileViaSimpleUpload(Stream fileStream, OneDriveItem oneDriveItem, CancellationToken cancellationToken = new())
         {
             // Construct the complete URL to call
             string completeUrl;
@@ -1328,7 +1397,7 @@ namespace KoenZomers.OneDrive.Api
 
             completeUrl = ConstructCompleteUrl(completeUrl);
 
-            return await UploadFileViaSimpleUploadInternal(fileStream, completeUrl);
+            return await UploadFileViaSimpleUploadInternal(fileStream, completeUrl, cancellationToken);
         }
 
         /// <summary>
@@ -1337,8 +1406,9 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="fileStream">Stream to the file to upload</param>
         /// <param name="fileName">The filename under which the file should be stored on OneDrive</param>
         /// <param name="parentFolder">OneDriveItem of the folder to which the file should be uploaded</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>The resulting OneDrive item representing the uploaded file</returns>
-        public async Task<OneDriveItem> UploadFileViaSimpleUpload(Stream fileStream, string fileName, OneDriveItem parentFolder)
+        public async Task<OneDriveItem> UploadFileViaSimpleUpload(Stream fileStream, string fileName, OneDriveItem parentFolder, CancellationToken cancellationToken = new())
         {
             // Construct the complete URL to call
             string completeUrl;
@@ -1368,7 +1438,7 @@ namespace KoenZomers.OneDrive.Api
 
             completeUrl = ConstructCompleteUrl(completeUrl);
 
-            return await UploadFileViaSimpleUploadInternal(fileStream, completeUrl);
+            return await UploadFileViaSimpleUploadInternal(fileStream, completeUrl, cancellationToken);
         }
 
         /// <summary>
@@ -1376,8 +1446,9 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="fileStream">Stream to the file to upload</param>
         /// <param name="oneDriveUrl">The URL to POST the file contents to</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>The resulting OneDrive item representing the uploaded file</returns>
-        protected async Task<OneDriveItem> UploadFileViaSimpleUploadInternal(Stream fileStream, string oneDriveUrl)
+        protected async Task<OneDriveItem> UploadFileViaSimpleUploadInternal(Stream fileStream, string oneDriveUrl, CancellationToken cancellationToken = new())
         { 
             // Get an access token to perform the request to OneDrive
             var accessToken = await GetAccessToken();
@@ -1398,10 +1469,10 @@ namespace KoenZomers.OneDrive.Api
                         request.Content = content;
 
                         // Request the response from the webservice
-                        using (var response = await client.SendAsync(request))
+                        using (var response = await client.SendAsync(request, cancellationToken))
                         {
                             // Read the response as a string
-                            var responseString = await response.Content.ReadAsStringAsync();
+                            var responseString = await response.Content.ReadAsStringAsync(cancellationToken);
 
                             // Convert the JSON result to its appropriate type
                             try
@@ -1430,8 +1501,9 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="file">File reference to the file to upload</param>
         /// <param name="fileName">The filename under which the file should be stored on OneDrive</param>
         /// <param name="oneDriveItem">OneDriveItem of the folder to which the file should be uploaded</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>The resulting OneDrive item representing the uploaded file</returns>
-        public async Task<OneDriveItem> UploadFileViaSimpleUpload(FileInfo file, string fileName, OneDriveItem oneDriveItem)
+        public async Task<OneDriveItem> UploadFileViaSimpleUpload(FileInfo file, string fileName, OneDriveItem oneDriveItem, CancellationToken cancellationToken = new())
         {          
             // Read the file to upload
             using (var fileStream = file.OpenRead())
@@ -1446,11 +1518,12 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="filePath">Path to the file to upload</param>
         /// <param name="fileName">The filename under which the file should be stored on OneDrive</param>
         /// <param name="oneDriveItem">OneDriveItem of the folder to which the file should be uploaded</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>The resulting OneDrive item representing the uploaded file</returns>
-        public async Task<OneDriveItem> UploadFileViaSimpleUpload(string filePath, string fileName, OneDriveItem oneDriveItem)
+        public async Task<OneDriveItem> UploadFileViaSimpleUpload(string filePath, string fileName, OneDriveItem oneDriveItem, CancellationToken cancellationToken = new())
         {
             var file = new FileInfo(filePath);
-            return await UploadFileViaSimpleUpload(file, fileName, oneDriveItem);
+            return await UploadFileViaSimpleUpload(file, fileName, oneDriveItem, cancellationToken);
         }
 
         /// <summary>
@@ -1459,11 +1532,12 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="filePath">Path to the file to upload</param>
         /// <param name="fileName">The filename under which the file should be stored on OneDrive</param>
         /// <param name="parentFolder">OneDrive item representing the folder to which the file should be uploaded</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem instance representing the uploaded item</returns>
-        public async Task<OneDriveItem> UploadFileViaResumableUpload(string filePath, string fileName, OneDriveItem parentFolder)
+        public async Task<OneDriveItem> UploadFileViaResumableUpload(string filePath, string fileName, OneDriveItem parentFolder, CancellationToken cancellationToken = new())
         {
             var file = new FileInfo(filePath);
-            return await UploadFileViaResumableUpload(file, fileName, parentFolder, null);
+            return await UploadFileViaResumableUpload(file, fileName, parentFolder, null, cancellationToken);
         }
 
         /// <summary>
@@ -1473,13 +1547,14 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="fileName">The filename under which the file should be stored on OneDrive</param>
         /// <param name="parentFolder">OneDrive item representing the folder to which the file should be uploaded</param>
         /// <param name="fragmentSizeInBytes">Size in bytes of the fragments to use for uploading. Higher numbers are faster but require more stable connections, lower numbers are slower but work better with unstable connections. Provide NULL to use the default.</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem instance representing the uploaded item</returns>
-        public virtual async Task<OneDriveItem> UploadFileViaResumableUpload(FileInfo file, string fileName, OneDriveItem parentFolder, long? fragmentSizeInBytes)
+        public virtual async Task<OneDriveItem> UploadFileViaResumableUpload(FileInfo file, string fileName, OneDriveItem parentFolder, long? fragmentSizeInBytes, CancellationToken cancellationToken = new())
         {
             // Open the source file for reading
             using (var fileStream = file.OpenRead())
             {
-                return await UploadFileViaResumableUpload(fileStream, fileName, parentFolder, fragmentSizeInBytes);
+                return await UploadFileViaResumableUpload(fileStream, fileName, parentFolder, fragmentSizeInBytes, cancellationToken);
             }
         }
 
@@ -1490,11 +1565,12 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="fileName">The filename under which the file should be stored on OneDrive</param>
         /// <param name="parentFolder">OneDrive item representing the folder to which the file should be uploaded</param>
         /// <param name="fragmentSizeInBytes">Size in bytes of the fragments to use for uploading. Higher numbers are faster but require more stable connections, lower numbers are slower but work better with unstable connections</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem instance representing the uploaded item</returns>
-        public virtual async Task<OneDriveItem> UploadFileViaResumableUpload(Stream fileStream, string fileName, OneDriveItem parentFolder, long? fragmentSizeInBytes)
+        public virtual async Task<OneDriveItem> UploadFileViaResumableUpload(Stream fileStream, string fileName, OneDriveItem parentFolder, long? fragmentSizeInBytes, CancellationToken cancellationToken = new())
         {
             var oneDriveUploadSession = await CreateResumableUploadSession(fileName, parentFolder);
-            return await UploadFileViaResumableUploadInternal(fileStream, oneDriveUploadSession, fragmentSizeInBytes);
+            return await UploadFileViaResumableUploadInternal(fileStream, oneDriveUploadSession, fragmentSizeInBytes, cancellationToken);
         }
 
         /// <summary>
@@ -1502,11 +1578,12 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="filePath">Path to the file to upload</param>
         /// <param name="oneDriveItem">OneDrive item representing the folder to which the file should be uploaded</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem instance representing the uploaded item</returns>
-        public async Task<OneDriveItem> UpdateFileViaResumableUpload(string filePath, OneDriveItem oneDriveItem)
+        public async Task<OneDriveItem> UpdateFileViaResumableUpload(string filePath, OneDriveItem oneDriveItem, CancellationToken cancellationToken = new())
         {
             var file = new FileInfo(filePath);
-            return await UpdateFileViaResumableUpload(file, oneDriveItem, null);
+            return await UpdateFileViaResumableUpload(file, oneDriveItem, null, cancellationToken);
         }
 
         /// <summary>
@@ -1515,13 +1592,14 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="file">FileInfo instance pointing to the file to upload</param>
         /// <param name="oneDriveItem">OneDrive item representing the folder to which the file should be uploaded</param>
         /// <param name="fragmentSizeInBytes">Size in bytes of the fragments to use for uploading. Higher numbers are faster but require more stable connections, lower numbers are slower but work better with unstable connections. Provide NULL to use the default.</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem instance representing the uploaded item</returns>
-        public virtual async Task<OneDriveItem> UpdateFileViaResumableUpload(FileInfo file, OneDriveItem oneDriveItem, long? fragmentSizeInBytes)
+        public virtual async Task<OneDriveItem> UpdateFileViaResumableUpload(FileInfo file, OneDriveItem oneDriveItem, long? fragmentSizeInBytes, CancellationToken cancellationToken = new())
         {
             // Open the source file for reading
             using (var fileStream = file.OpenRead())
             {
-                return await UpdateFileViaResumableUpload(fileStream, oneDriveItem, fragmentSizeInBytes);
+                return await UpdateFileViaResumableUpload(fileStream, oneDriveItem, fragmentSizeInBytes, cancellationToken);
             }
         }
 
@@ -1531,11 +1609,12 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="fileStream">Stream pointing to the file to upload</param>
         /// <param name="oneDriveItem">OneDrive item representing the folder to which the file should be uploaded</param>
         /// <param name="fragmentSizeInBytes">Size in bytes of the fragments to use for uploading. Higher numbers are faster but require more stable connections, lower numbers are slower but work better with unstable connections</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem instance representing the uploaded item</returns>
-        public virtual async Task<OneDriveItem> UpdateFileViaResumableUpload(Stream fileStream, OneDriveItem oneDriveItem, long? fragmentSizeInBytes)
+        public virtual async Task<OneDriveItem> UpdateFileViaResumableUpload(Stream fileStream, OneDriveItem oneDriveItem, long? fragmentSizeInBytes, CancellationToken cancellationToken = new())
         {
-            var oneDriveUploadSession = await CreateResumableUploadSession(oneDriveItem);
-            return await UploadFileViaResumableUploadInternal(fileStream, oneDriveUploadSession, fragmentSizeInBytes);
+            var oneDriveUploadSession = await CreateResumableUploadSession(oneDriveItem, cancellationToken);
+            return await UploadFileViaResumableUploadInternal(fileStream, oneDriveUploadSession, fragmentSizeInBytes, cancellationToken);
         }
 
         /// <summary>
@@ -1544,8 +1623,9 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="fileStream">Stream pointing to the file to upload</param>
         /// <param name="oneDriveUploadSession">Upload session under which the upload will be performed</param>
         /// <param name="fragmentSizeInBytes">Size in bytes of the fragments to use for uploading. Higher numbers are faster but require more stable connections, lower numbers are slower but work better with unstable connections.</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveItem instance representing the uploaded item</returns>
-        protected virtual async Task<OneDriveItem> UploadFileViaResumableUploadInternal(Stream fileStream, OneDriveUploadSession oneDriveUploadSession, long? fragmentSizeInBytes)
+        protected virtual async Task<OneDriveItem> UploadFileViaResumableUploadInternal(Stream fileStream, OneDriveUploadSession oneDriveUploadSession, long? fragmentSizeInBytes, CancellationToken cancellationToken = new())
         {
             if(fileStream == null)
             {
@@ -1634,7 +1714,7 @@ namespace KoenZomers.OneDrive.Api
                                         // All fragments have been received, the file has been created
                                         case HttpStatusCode.Created:
                                             // Read the response as a string
-                                            var responseString = await response.Content.ReadAsStringAsync();
+                                            var responseString = await response.Content.ReadAsStringAsync(cancellationToken);
 
                                             // Convert the JSON result to its appropriate type
                                             try
@@ -1676,8 +1756,9 @@ namespace KoenZomers.OneDrive.Api
         /// Initiates a resumable upload session to OneDrive to overwrite an existing file. It doesn't perform the actual upload yet.
         /// </summary>
         /// <param name="oneDriveItem">OneDriveItem item for which updated content will be uploaded</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveUploadSession instance containing the details where to upload the content to</returns>
-        protected virtual async Task<OneDriveUploadSession> CreateResumableUploadSession(OneDriveItem oneDriveItem)
+        protected virtual async Task<OneDriveUploadSession> CreateResumableUploadSession(OneDriveItem oneDriveItem, CancellationToken cancellationToken = new())
         {
             // Construct the complete URL to call
             string completeUrl;
@@ -1715,7 +1796,7 @@ namespace KoenZomers.OneDrive.Api
             };
 
             // Call the OneDrive webservice
-            var result = await SendMessageReturnOneDriveItem<OneDriveUploadSession>(uploadItemContainer, HttpMethod.Post, completeUrl, HttpStatusCode.OK);
+            var result = await SendMessageReturnOneDriveItem<OneDriveUploadSession>(uploadItemContainer, HttpMethod.Post, completeUrl, HttpStatusCode.OK, cancellationToken);
             return result;
         }
 
@@ -1724,8 +1805,9 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="fileName">Filename to store the uploaded content under</param>
         /// <param name="oneDriveFolder">OneDriveItem container in which the file should be uploaded</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveUploadSession instance containing the details where to upload the content to</returns>
-        protected virtual async Task<OneDriveUploadSession> CreateResumableUploadSession(string fileName, OneDriveItem oneDriveFolder)
+        protected virtual async Task<OneDriveUploadSession> CreateResumableUploadSession(string fileName, OneDriveItem oneDriveFolder, CancellationToken cancellationToken = new())
         {
             // Construct the complete URL to call
             string completeUrl;
@@ -1763,7 +1845,7 @@ namespace KoenZomers.OneDrive.Api
             };
 
             // Call the OneDrive webservice
-            var result = await SendMessageReturnOneDriveItem<OneDriveUploadSession>(uploadItemContainer, HttpMethod.Post, completeUrl, HttpStatusCode.OK);
+            var result = await SendMessageReturnOneDriveItem<OneDriveUploadSession>(uploadItemContainer, HttpMethod.Post, completeUrl, HttpStatusCode.OK, cancellationToken);
             return result;
         }
 
@@ -1772,14 +1854,15 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <typeparam name="T">Type of OneDrive entity to expect to be returned</typeparam>
         /// <param name="url">Url fragment after the OneDrive base Uri which indicated the type of information to return</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDrive entity filled with the information retrieved from the OneDrive API</returns>
-        protected virtual async Task<T> GetData<T>(string url) where T : OneDriveItemBase
+        protected virtual async Task<T> GetData<T>(string url, CancellationToken cancellationToken = new()) where T : OneDriveItemBase
         {
             // Construct the complete URL to call
             var completeUrl = ConstructCompleteUrl(url);
 
             // Call the OneDrive webservice
-            var result = await SendMessageReturnOneDriveItem<T>("", HttpMethod.Get, completeUrl, HttpStatusCode.OK);
+            var result = await SendMessageReturnOneDriveItem<T>("", HttpMethod.Get, completeUrl, HttpStatusCode.OK, cancellationToken);
             return result;
         }
 
@@ -1787,14 +1870,15 @@ namespace KoenZomers.OneDrive.Api
         /// Sends a HTTP DELETE to OneDrive to delete a file
         /// </summary>
         /// <param name="oneDriveUrl">The OneDrive API url to call to delete an item</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>True if successful, false if failed</returns>
-        protected virtual async Task<bool> DeleteItemInternal(string oneDriveUrl)
+        protected virtual async Task<bool> DeleteItemInternal(string oneDriveUrl, CancellationToken cancellationToken = new())
         {
             // Construct the complete URL to call
             var completeUrl = ConstructCompleteUrl(oneDriveUrl);
 
             // Call the OneDrive webservice
-            var result = await SendMessageReturnBool(null, HttpMethod.Delete, completeUrl, HttpStatusCode.NoContent);
+            var result = await SendMessageReturnBool(null, HttpMethod.Delete, completeUrl, HttpStatusCode.NoContent, cancellationToken: cancellationToken);
             return result;
         }
 
@@ -1804,8 +1888,9 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="oneDriveSource">The OneDrive Item to be copied</param>
         /// <param name="oneDriveDestinationParent">The OneDrive parent item to copy the item into</param>
         /// <param name="destinationName">The name of the item at the destination where it will be copied to</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>True if successful, false if failed</returns>
-        protected virtual async Task<bool> CopyItemInternal(OneDriveItem oneDriveSource, OneDriveItem oneDriveDestinationParent, string destinationName)
+        protected virtual async Task<bool> CopyItemInternal(OneDriveItem oneDriveSource, OneDriveItem oneDriveDestinationParent, string destinationName, CancellationToken cancellationToken = new())
         {
             // Construct the complete URL to call
             string completeUrl;
@@ -1834,7 +1919,7 @@ namespace KoenZomers.OneDrive.Api
             };
 
             // Call the OneDrive webservice
-            var result = await SendMessageReturnBool(requestBody, HttpMethod.Post, completeUrl, HttpStatusCode.Accepted, true);
+            var result = await SendMessageReturnBool(requestBody, HttpMethod.Post, completeUrl, HttpStatusCode.Accepted, true, cancellationToken);
             return result;              
         }
 
@@ -1843,20 +1928,21 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="oneDriveSource">The OneDrive Item to be moved</param>
         /// <param name="oneDriveDestinationParent">The OneDrive parent item to move the item to</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>True if successful, false if failed</returns>
-        protected virtual async Task<bool> MoveItemInternal(OneDriveItem oneDriveSource, OneDriveItem oneDriveDestinationParent)
+        protected virtual async Task<bool> MoveItemInternal(OneDriveItem oneDriveSource, OneDriveItem oneDriveDestinationParent, CancellationToken cancellationToken = new())
         {
             // Construct the complete URL to call
             string completeUrl;
             if (oneDriveSource.RemoteItem != null)
             {
                 // Item to copy is shared from another drive
-                completeUrl = string.Concat("drives/", oneDriveSource.RemoteItem.ParentReference.DriveId, "/items/", oneDriveSource.RemoteItem.Id);
+                completeUrl = $"drives/{oneDriveSource.RemoteItem.ParentReference.DriveId}/items/{oneDriveSource.RemoteItem.Id}";
             }
             else
             {
                 // Item to copy resides on the current user its drive
-                completeUrl = string.Concat("drive/items/", oneDriveSource.Id);
+                completeUrl = $"drive/items/{oneDriveSource.Id}";
             }
 
             completeUrl = ConstructCompleteUrl(completeUrl);
@@ -1872,7 +1958,7 @@ namespace KoenZomers.OneDrive.Api
             };
 
             // Call the OneDrive webservice
-            var result = await SendMessageReturnBool(requestBody, new HttpMethod("PATCH"), completeUrl, HttpStatusCode.OK);
+            var result = await SendMessageReturnBool(requestBody, new HttpMethod("PATCH"), completeUrl, HttpStatusCode.OK, cancellationToken: cancellationToken);
             return result;
         }
 
@@ -1881,8 +1967,9 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="oneDriveSource">The OneDrive Item to be renamed</param>
         /// <param name="name">The new name to give to the OneDrive item</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>True if successful, false if failed</returns>
-        protected virtual async Task<bool> RenameItemInternal(OneDriveItem oneDriveSource, string name)
+        protected virtual async Task<bool> RenameItemInternal(OneDriveItem oneDriveSource, string name, CancellationToken cancellationToken = new())
         {
             // Construct the complete URL to call
             string completeUrl;
@@ -1906,7 +1993,7 @@ namespace KoenZomers.OneDrive.Api
             };
 
             // Call the OneDrive webservice
-            var result = await SendMessageReturnBool(requestBody, new HttpMethod("PATCH"), completeUrl, HttpStatusCode.OK);
+            var result = await SendMessageReturnBool(requestBody, new HttpMethod("PATCH"), completeUrl, HttpStatusCode.OK, cancellationToken: cancellationToken);
             return result;
         }
 
@@ -1918,12 +2005,13 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="httpMethod">HttpMethod to use to send with the webservice (i.e. POST, GET, PUT, etc.)</param>
         /// <param name="url">Url of the OneDrive webservice to send the message to</param>
         /// <param name="expectedHttpStatusCode">The expected Http result status code. Optional. If provided and the webservice returns a different response, the return type will be NULL to indicate failure.</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>Typed OneDrive entity with the result from the webservice</returns>
-        protected virtual async Task<T> SendMessageReturnOneDriveItem<T>(OneDriveItemBase oneDriveItem, HttpMethod httpMethod, string url, HttpStatusCode? expectedHttpStatusCode = null) where T : OneDriveItemBase
+        protected virtual async Task<T> SendMessageReturnOneDriveItem<T>(OneDriveItemBase oneDriveItem, HttpMethod httpMethod, string url, HttpStatusCode? expectedHttpStatusCode = null, CancellationToken cancellationToken = new()) where T : OneDriveItemBase
         {
             var bodyText = oneDriveItem != null ? JsonSerializer.Serialize(oneDriveItem, oneDriveItem.GetType(), JSONOptions) : null;
 
-            return await SendMessageReturnOneDriveItem<T>(bodyText, httpMethod, url, expectedHttpStatusCode);
+            return await SendMessageReturnOneDriveItem<T>(bodyText, httpMethod, url, expectedHttpStatusCode, cancellationToken);
         }
 
         /// <summary>
@@ -1934,10 +2022,11 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="httpMethod">HttpMethod to use to send with the webservice (i.e. POST, GET, PUT, etc.)</param>
         /// <param name="url">Url of the OneDrive webservice to send the message to</param>
         /// <param name="expectedHttpStatusCode">The expected Http result status code. Optional. If provided and the webservice returns a different response, the return type will be NULL to indicate failure.</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>Typed OneDrive entity with the result from the webservice</returns>
-        protected virtual async Task<T> SendMessageReturnOneDriveItem<T>(string bodyText, HttpMethod httpMethod, string url, HttpStatusCode? expectedHttpStatusCode = null) where T : OneDriveItemBase
+        protected virtual async Task<T> SendMessageReturnOneDriveItem<T>(string bodyText, HttpMethod httpMethod, string url, HttpStatusCode? expectedHttpStatusCode = null, CancellationToken cancellationToken = new()) where T : OneDriveItemBase
         {
-            var responseString = await SendMessageReturnString(bodyText, httpMethod, url, expectedHttpStatusCode);
+            var responseString = await SendMessageReturnString(bodyText, httpMethod, url, expectedHttpStatusCode, cancellationToken);
 
             // Validate output was generated
             if (string.IsNullOrEmpty(responseString)) return null;
@@ -1966,14 +2055,15 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="httpMethod">HttpMethod to use to send with the webservice (i.e. POST, GET, PUT, etc.)</param>
         /// <param name="url">Url of the OneDrive webservice to send the message to</param>
         /// <param name="expectedHttpStatusCode">The expected Http result status code. Optional. If provided and the webservice returns a different response, the return type will be NULL to indicate failure.</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>String containing the response of the webservice</returns>
-        protected virtual async Task<string> SendMessageReturnString(string bodyText, HttpMethod httpMethod, string url, HttpStatusCode? expectedHttpStatusCode = null)
+        protected virtual async Task<string> SendMessageReturnString(string bodyText, HttpMethod httpMethod, string url, HttpStatusCode? expectedHttpStatusCode = null, CancellationToken cancellationToken = new())
         {
-            using (var response = await SendMessageReturnHttpResponse(bodyText, httpMethod, url))
+            using (var response = await SendMessageReturnHttpResponse(bodyText, httpMethod, url, cancellationToken: cancellationToken))
             {
                 if (!expectedHttpStatusCode.HasValue || (expectedHttpStatusCode.HasValue && response != null && response.StatusCode == expectedHttpStatusCode.Value))
                 {
-                    var responseString = await response.Content.ReadAsStringAsync();
+                    var responseString = await response.Content.ReadAsStringAsync(cancellationToken);
                     return responseString;
                 }
                 return null;
@@ -1988,12 +2078,13 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="url">Url of the OneDrive webservice to send the message to</param>
         /// <param name="expectedHttpStatusCode">The expected Http result status code. Optional. If provided and the webservice returns a different response, the return type will be NULL to indicate failure.</param>
         /// <param name="preferRespondAsync">Provide true if the Prefer Async header should be sent along with the request. This is required for some requests. Optional, default = false = do not send the async header.</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>Bool indicating if the HTTP response status from the webservice matched the provided expectedHttpStatusCode</returns>
-        protected virtual async Task<bool> SendMessageReturnBool(OneDriveItemBase oneDriveItem, HttpMethod httpMethod, string url, HttpStatusCode expectedHttpStatusCode, bool preferRespondAsync = false)
+        protected virtual async Task<bool> SendMessageReturnBool(OneDriveItemBase oneDriveItem, HttpMethod httpMethod, string url, HttpStatusCode expectedHttpStatusCode, bool preferRespondAsync = false, CancellationToken cancellationToken = new())
         {
             var bodyText = oneDriveItem != null ? JsonSerializer.Serialize(oneDriveItem, oneDriveItem.GetType(), JSONOptions) : null;
 
-            using (var response = await SendMessageReturnHttpResponse(bodyText, httpMethod, url, preferRespondAsync))
+            using (var response = await SendMessageReturnHttpResponse(bodyText, httpMethod, url, preferRespondAsync, cancellationToken))
             {
                 return response != null && response.StatusCode == expectedHttpStatusCode;
             }
@@ -2006,8 +2097,9 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="httpMethod">HttpMethod to use to send with the webservice (i.e. POST, GET, PUT, etc.)</param>
         /// <param name="url">Url of the OneDrive webservice to send the message to</param>
         /// <param name="preferRespondAsync">Provide true if the Prefer Async header should be sent along with the request. This is required for some requests. Optional, default = false = do not send the async header.</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>HttpResponse of the webservice call. Note that the caller needs to dispose the returned instance.</returns>
-        protected virtual async Task<HttpResponseMessage> SendMessageReturnHttpResponse(string bodyText, HttpMethod httpMethod, string url, bool preferRespondAsync = false)
+        protected virtual async Task<HttpResponseMessage> SendMessageReturnHttpResponse(string bodyText, HttpMethod httpMethod, string url, bool preferRespondAsync = false, CancellationToken cancellationToken = new())
         {
             // Get an access token to perform the request to OneDrive
             var accessToken = await GetAccessToken();
@@ -2035,7 +2127,7 @@ namespace KoenZomers.OneDrive.Api
                         }
 
                         // Request the response from the webservice
-                        var response = await client.SendAsync(request);
+                        var response = await client.SendAsync(request, cancellationToken);
                         return response;
                     }
                 }
