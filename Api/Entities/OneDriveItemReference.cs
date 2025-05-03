@@ -1,16 +1,15 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace KoenZomers.OneDrive.Api.Entities
+namespace KoenZomers.OneDrive.Api.Entities;
+
+public class OneDriveItemReference : OneDriveItemBase
 {
-    public class OneDriveItemReference : OneDriveItemBase
-    {
-        [JsonPropertyName("driveId")]
-        public string DriveId { get; set; }
+    [JsonPropertyName("driveId")]
+    public string DriveId { get; set; }
 
-        [JsonPropertyName("id")]
-        public string Id { get; set; }
+    [JsonPropertyName("id")]
+    public string Id { get; set; }
 
-        [JsonPropertyName("path")]
-        public string Path { get; set; }
-    }
+    [JsonPropertyName("path")]
+    public string Path { get; set; }
 }

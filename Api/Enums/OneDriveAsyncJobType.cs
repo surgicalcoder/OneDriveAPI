@@ -1,12 +1,12 @@
 ﻿using System.Runtime.Serialization;
 
-namespace KoenZomers.OneDrive.Api.Enums
+namespace KoenZomers.OneDrive.Api.Enums;
+
+public enum OneDriveAsyncJobType
 {
-    public enum OneDriveAsyncJobType
-    {
-        [EnumMember(Value = "DownloadUrl")]
-        DownloadUrl,
-        [EnumMember(Value = "CopyItem")]
-        CopyItem
-    }
+    [EnumMember(Value = "DownloadUrl")]
+    DownloadUrl,
+
+    [EnumMember(Value = "CopyItem")]
+    CopyItem
 }

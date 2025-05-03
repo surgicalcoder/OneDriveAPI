@@ -1,10 +1,9 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace KoenZomers.OneDrive.Api.Entities
+namespace KoenZomers.OneDrive.Api.Entities;
+
+internal class OneDriveUploadSessionItemContainer : OneDriveItemBase
 {
-    internal class OneDriveUploadSessionItemContainer : OneDriveItemBase
-    {
-        [JsonPropertyName("item")]
-        public OneDriveUploadSessionItem Item { get; set; }
-    }
+    [JsonPropertyName("item")]
+    public OneDriveUploadSessionItem Item { get; set; }
 }

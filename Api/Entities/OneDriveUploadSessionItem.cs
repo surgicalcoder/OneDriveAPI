@@ -1,14 +1,13 @@
-﻿using KoenZomers.OneDrive.Api.Enums;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
+using KoenZomers.OneDrive.Api.Enums;
 
-namespace KoenZomers.OneDrive.Api.Entities
+namespace KoenZomers.OneDrive.Api.Entities;
+
+internal class OneDriveUploadSessionItem
 {
-    internal class OneDriveUploadSessionItem
-    {
-        [JsonPropertyName("@microsoft.graph.conflictBehavior")]
-        public NameConflictBehavior FilenameConflictBehavior { get; set; }
+    [JsonPropertyName("@microsoft.graph.conflictBehavior")]
+    public NameConflictBehavior FilenameConflictBehavior { get; set; }
 
-        [JsonPropertyName("name")]
-        public string Filename { get; set; }
-    }
+    [JsonPropertyName("name")]
+    public string Filename { get; set; }
 }

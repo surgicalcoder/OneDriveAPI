@@ -1,16 +1,15 @@
 ﻿using System.Runtime.Serialization;
 
-namespace KoenZomers.OneDrive.Api.Enums
+namespace KoenZomers.OneDrive.Api.Enums;
+
+public enum NameConflictBehavior
 {
-    public enum NameConflictBehavior
-    {
-        [EnumMember(Value = "fail")]
-        Fail,
+    [EnumMember(Value = "fail")]
+    Fail,
 
-        [EnumMember(Value = "replace")]
-        Replace,
+    [EnumMember(Value = "replace")]
+    Replace,
 
-        [EnumMember(Value = "rename")]
-        Rename
-    }
+    [EnumMember(Value = "rename")]
+    Rename
 }

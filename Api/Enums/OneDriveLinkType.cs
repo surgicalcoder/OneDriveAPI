@@ -1,22 +1,21 @@
 ﻿using System.Runtime.Serialization;
 
-namespace KoenZomers.OneDrive.Api.Enums
+namespace KoenZomers.OneDrive.Api.Enums;
+
+/// <summary>
+/// Type of rights assignable to a OneDrive item
+/// </summary>
+public enum OneDriveLinkType
 {
     /// <summary>
-    /// Type of rights assignable to a OneDrive item
+    /// Read-only
     /// </summary>
-    public enum OneDriveLinkType
-    {
-        /// <summary>
-        /// Read-only
-        /// </summary>
-        [EnumMember(Value = "view")]
-        View,
+    [EnumMember(Value = "view")]
+    View,
 
-        /// <summary>
-        /// Read-write
-        /// </summary>
-        [EnumMember(Value = "edit")]
-        Edit
-    }
+    /// <summary>
+    /// Read-write
+    /// </summary>
+    [EnumMember(Value = "edit")]
+    Edit
 }

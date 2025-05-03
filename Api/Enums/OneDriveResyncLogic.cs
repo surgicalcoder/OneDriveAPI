@@ -1,16 +1,15 @@
 ﻿using System.Runtime.Serialization;
 
-namespace KoenZomers.OneDrive.Api.Enums
+namespace KoenZomers.OneDrive.Api.Enums;
+
+public enum OneDriveResyncLogicTypes
 {
-    public enum OneDriveResyncLogicTypes
-    {
-        [EnumMember(Value = "none")]
-        NoResyncRequired = 0,
+    [EnumMember(Value = "none")]
+    NoResyncRequired = 0,
 
-        [EnumMember(Value = "ResetCacheAndFullSync")]
-        ResetCacheAndFullSync,
+    [EnumMember(Value = "ResetCacheAndFullSync")]
+    ResetCacheAndFullSync,
 
-        [EnumMember(Value = "FullSyncAndUploadDifferences")]
-        FullSyncAndUploadDifferences
-    }
+    [EnumMember(Value = "FullSyncAndUploadDifferences")]
+    FullSyncAndUploadDifferences
 }

@@ -1,10 +1,9 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace KoenZomers.OneDrive.Api.Entities
+namespace KoenZomers.OneDrive.Api.Entities;
+
+public class OneDriveFolderFacet
 {
-    public class OneDriveFolderFacet
-    {
-        [JsonPropertyName("childCount")]
-        public long ChildCount { get; set; }
-    }
+    [JsonPropertyName("childCount")]
+    public long ChildCount { get; set; }
 }

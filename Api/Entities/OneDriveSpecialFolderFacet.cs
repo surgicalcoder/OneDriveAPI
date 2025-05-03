@@ -1,10 +1,9 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace KoenZomers.OneDrive.Api.Entities
+namespace KoenZomers.OneDrive.Api.Entities;
+
+public class OneDriveSpecialFolderFacet
 {
-    public class OneDriveSpecialFolderFacet
-    {
-        [JsonPropertyName("name")]
-        public string Name { get; set; }
-    }
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
 }

@@ -1,22 +1,21 @@
 ﻿using System.Runtime.Serialization;
 
-namespace KoenZomers.OneDrive.Api.Enums
+namespace KoenZomers.OneDrive.Api.Enums;
+
+public enum OneDriveKnownFolder
 {
-    public enum OneDriveKnownFolder
-    {
-        [EnumMember(Value = "approot")]
-        AppFolder,
+    [EnumMember(Value = "approot")]
+    AppFolder,
 
-        [EnumMember(Value = "documents")]
-        Documents,
+    [EnumMember(Value = "documents")]
+    Documents,
 
-        [EnumMember(Value = "photos")]
-        Photos,
+    [EnumMember(Value = "photos")]
+    Photos,
 
-        [EnumMember(Value = "cameraroll")]
-        CameraRoll,
+    [EnumMember(Value = "cameraroll")]
+    CameraRoll,
 
-        [EnumMember(Value = "public")]
-        Public
-    }
+    [EnumMember(Value = "public")]
+    Public
 }
