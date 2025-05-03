@@ -153,7 +153,7 @@ namespace KoenZomers.OneDrive.Api
             }
 
             // Url must start with the return url followed by a question mark to provide querystring parameters
-            if (!url.StartsWith(string.Concat(AuthenticationRedirectUrl, "?")) && !url.StartsWith(string.Concat(AuthenticationRedirectUrl, "/?")))
+            if (!url.StartsWith($"{AuthenticationRedirectUrl}?") && !url.StartsWith($"{AuthenticationRedirectUrl}/?"))
             {
                 return null;
             }
@@ -234,6 +234,8 @@ namespace KoenZomers.OneDrive.Api
                 using (var content = new StringContent(queryBuilder.ToString(), Encoding.UTF8, "application/x-www-form-urlencoded"))
                 {
                     // Construct the message towards the webservice
+                    var options = new JsonSerializerOptions();
+
                     using (var request = new HttpRequestMessage(HttpMethod.Post, AccessTokenUri))
                     {
                         // Set the content to send along in the message body with the request
@@ -241,16 +243,15 @@ namespace KoenZomers.OneDrive.Api
 
                         // Request the response from the webservice
                         var response = await client.SendAsync(request, cancellationToken);
-                        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                        await using var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
 
-                        var options = new JsonSerializerOptions();
                         options.Converters.Add(new JsonStringEnumConverter());
 
                         // Verify if the request was successful (response status 200-299)
                         if (response.IsSuccessStatusCode)
                         {
                             // Successfully retrieved token, parse it from the response
-                            var appTokenResult = JsonSerializer.Deserialize<OneDriveAccessToken>(responseBody, options);
+                            var appTokenResult = await JsonSerializer.DeserializeAsync<OneDriveAccessToken>(responseStream, options, cancellationToken);
                             return appTokenResult;
                         }
 
@@ -259,7 +260,7 @@ namespace KoenZomers.OneDrive.Api
                         try
                         {
                             // Try to parse the response as a OneDrive API error message
-                            errorResult = JsonSerializer.Deserialize<OneDriveError>(responseBody, options);
+                            errorResult = await JsonSerializer.DeserializeAsync<OneDriveError>(responseStream, options, cancellationToken);
                         }
                         catch(Exception ex)
                         {
@@ -276,7 +277,8 @@ namespace KoenZomers.OneDrive.Api
         /// Authenticates to OneDrive using the provided Refresh Token
         /// </summary>
         /// <param name="refreshToken">Refreshtoken to use to authenticate to OneDrive</param>
-        public async Task AuthenticateUsingRefreshToken(string refreshToken)
+        /// <param name="cancellationToken">Cancellation Token</param>
+        public async Task AuthenticateUsingRefreshToken(string refreshToken, CancellationToken cancellationToken = new())
         {
             AccessToken = await GetAccessTokenFromRefreshToken(refreshToken);
             AccessTokenValidUntil = DateTime.Now.AddSeconds(AccessToken.AccessTokenExpirationDuration);
@@ -382,7 +384,7 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>OneDriveItemCollection containing the first batch of items in the requested folder</returns>
         public virtual async Task<OneDriveItemCollection> GetChildrenByPath(string path, CancellationToken cancellationToken = new())
         {
-            return await GetData<OneDriveItemCollection>(string.Concat("drive/root:/", path, ":/children"), cancellationToken);
+            return await GetData<OneDriveItemCollection>($"drive/root:/{path}:/children", cancellationToken);
         }
 
         /// <summary>
@@ -404,7 +406,7 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>OneDriveItem array containing all items in the requested folder</returns>
         public virtual async Task<OneDriveItem[]> GetAllChildrenByPath(string path, CancellationToken cancellationToken = new())
         {
-            return await GetAllChildrenInternal(string.Concat("drive/root:/", path, ":/children"), cancellationToken);
+            return await GetAllChildrenInternal($"drive/root:/{path}:/children", cancellationToken);
         }
 
         /// <summary>
@@ -415,7 +417,7 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>OneDriveItemCollection containing the first batch of items in the folder</returns>
         public virtual async Task<OneDriveItemCollection> GetChildrenByFolderId(string id, CancellationToken cancellationToken = new())
         {
-            return await GetData<OneDriveItemCollection>(string.Concat("drive/items/", id, "/children"), cancellationToken);
+            return await GetData<OneDriveItemCollection>($"drive/items/{id}/children", cancellationToken);
         }
 
         /// <summary>
@@ -426,7 +428,7 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>OneDriveItem array containing all items in the requested folder</returns>
         public virtual async Task<OneDriveItem[]> GetAllChildrenByFolderId(string id, CancellationToken cancellationToken = new())
         {
-            return await GetAllChildrenInternal(string.Concat("drive/items/", id, "/children"), cancellationToken);
+            return await GetAllChildrenInternal($"drive/items/{id}/children", cancellationToken);
         }
 
         /// <summary>
@@ -442,17 +444,17 @@ namespace KoenZomers.OneDrive.Api
             if (item.RemoteItem != null)
             {
                 // Item to get the children from is shared from another drive
-                completeUrl = string.Concat("drives/", item.RemoteItem.ParentReference.DriveId, "/items/", item.RemoteItem.Id, "/children");
+                completeUrl = $"drives/{item.RemoteItem.ParentReference.DriveId}/items/{item.RemoteItem.Id}/children";
             }
             else if (!string.IsNullOrEmpty(item.ParentReference.DriveId))
             {
                 // Item to get the children from is shared from another drive
-                completeUrl = string.Concat("drives/", item.ParentReference.DriveId, "/items/", item.Id, "/children");
+                completeUrl = $"drives/{item.ParentReference.DriveId}/items/{item.Id}/children";
             }
             else
             {
                 // Item to get the children from resides on the current user its drive
-                completeUrl = string.Concat("drive/items/", item.Id, "/children");
+                completeUrl = $"drive/items/{item.Id}/children";
             }
 
             return await GetData<OneDriveItemCollection>(completeUrl, cancellationToken);
@@ -471,17 +473,17 @@ namespace KoenZomers.OneDrive.Api
             if (item.RemoteItem != null)
             {
                 // Item to get the children from is shared from another drive
-                completeUrl = string.Concat("drives/", item.RemoteItem.ParentReference.DriveId, "/items/", item.RemoteItem.Id, "/children");
+                completeUrl = $"drives/{item.RemoteItem.ParentReference.DriveId}/items/{item.RemoteItem.Id}/children";
             }
             else if (!string.IsNullOrEmpty(item.ParentReference.DriveId))
             {
                 // Item to get the children from is shared from another drive
-                completeUrl = string.Concat("drives/", item.ParentReference.DriveId, "/items/", item.Id, "/children");
+                completeUrl = $"drives/{item.ParentReference.DriveId}/items/{item.Id}/children";
             }
             else
             {
                 // Item to get the children from resides on the current user its drive
-                completeUrl = string.Concat("drive/items/", item.Id, "/children");
+                completeUrl = $"drive/items/{item.Id}/children";
             }
 
             return await GetAllChildrenInternal(completeUrl, cancellationToken);
@@ -522,7 +524,7 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>OneDriveItem representing the file or NULL if the file was not found</returns>
         public virtual async Task<OneDriveItem> GetItem(string path, CancellationToken cancellationToken = new())
         {
-            return await GetData<OneDriveItem>(string.Concat("drive/root:/", path), cancellationToken);
+            return await GetData<OneDriveItem>($"drive/root:/{path}", cancellationToken);
         }
 
         /// <summary>
@@ -561,7 +563,7 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>OneDriveItem representing the file or NULL if the file was not found</returns>
         public virtual async Task<OneDriveItem> GetItemById(string id, CancellationToken cancellationToken = new())
         {
-            return await GetData<OneDriveItem>(string.Concat("drive/items/", id), cancellationToken);
+            return await GetData<OneDriveItem>($"drive/items/{id}", cancellationToken);
         }
 
         /// <summary>
@@ -573,7 +575,7 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>OneDriveItem representing the file or NULL if the file was not found</returns>
         public virtual async Task<OneDriveItem> GetItemFromDriveById(string id, string driveId, CancellationToken cancellationToken = new())
         {
-            return await GetData<OneDriveItem>(string.Concat("drives/", driveId, "/items/", id), cancellationToken);
+            return await GetData<OneDriveItem>($"drives/{driveId}/items/{id}", cancellationToken);
         }
 
         /// <summary>
@@ -585,7 +587,7 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>OneDriveItem representing the file or NULL if the file was not found</returns>
         public virtual async Task<OneDriveItem> GetItemFromDriveById(string id, OneDriveDrive drive, CancellationToken cancellationToken = new())
         {
-            return await GetData<OneDriveItem>(string.Concat("drives/", drive.Id, "/items/", id), cancellationToken);
+            return await GetData<OneDriveItem>($"drives/{drive.Id}/items/{id}", cancellationToken);
         }
 
         /// <summary>
@@ -604,11 +606,11 @@ namespace KoenZomers.OneDrive.Api
             if(path.Contains("\\"))
             {
                 // Path contains multiple folders, use recursion to ensure the entire path exists
-                await GetFolderOrCreate(path.Remove(path.LastIndexOf("\\")));
+                await GetFolderOrCreate(path.Remove(path.LastIndexOf("\\", StringComparison.Ordinal)), cancellationToken);
             }
 
             // Try to get the folder
-            var folder = await GetData<OneDriveItem>(string.Concat("drive/root:/", path));
+            var folder = await GetData<OneDriveItem>($"drive/root:/{path}", cancellationToken);
 
             if (folder != null)
             {
@@ -668,7 +670,7 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>All OneDrive items resulting from the search</returns>
         public virtual async Task<IList<OneDriveItem>> Search(string query, CancellationToken cancellationToken = new())
         {
-            return await SearchInternal(string.Concat("drive/root/view.search?q=", query), cancellationToken);
+            return await SearchInternal($"drive/root/view.search?q={query}", cancellationToken);
         }
 
         /// <summary>
@@ -680,7 +682,7 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>All OneDrive items resulting from the search</returns>
         public virtual async Task<IList<OneDriveItem>> Search(string query, string path, CancellationToken cancellationToken = new())
         {
-            return await SearchInternal(string.Concat("drive/root:/", path, "/view.search?q=", query), cancellationToken);
+            return await SearchInternal($"drive/root:/{path}/view.search?q={query}", cancellationToken);
         }
 
         /// <summary>
@@ -692,7 +694,7 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>All OneDrive items resulting from the search</returns>
         public virtual async Task<IList<OneDriveItem>> Search(string query, OneDriveItem oneDriveItem, CancellationToken cancellationToken = new())
         {
-            return await SearchInternal(string.Concat("drive/items/", oneDriveItem.Id, "/view.search?q=", query), cancellationToken);
+            return await SearchInternal($"drive/items/{oneDriveItem.Id}/view.search?q={query}", cancellationToken);
         }
 
         /// <summary>
@@ -707,17 +709,17 @@ namespace KoenZomers.OneDrive.Api
             if (oneDriveItem.RemoteItem != null)
             {
                 // Item to delete is shared from another drive
-                completeUrl = string.Concat("drives/", oneDriveItem.RemoteItem.ParentReference.DriveId, "/items/", oneDriveItem.RemoteItem.Id);
+                completeUrl = $"drives/{oneDriveItem.RemoteItem.ParentReference.DriveId}/items/{oneDriveItem.RemoteItem.Id}";
             }
             else if (oneDriveItem.ParentReference != null && !string.IsNullOrEmpty(oneDriveItem.ParentReference.DriveId))
             {
                 // Item to delete is shared from another drive
-                completeUrl = string.Concat("drives/", oneDriveItem.ParentReference.DriveId, "/items/", oneDriveItem.Id);
+                completeUrl = $"drives/{oneDriveItem.ParentReference.DriveId}/items/{oneDriveItem.Id}";
             }
             else
             {
                 // Item to delete resides on the current user its drive
-                completeUrl = string.Concat("drive/items/", oneDriveItem.Id);
+                completeUrl = $"drive/items/{oneDriveItem.Id}";
             }
 
             return await DeleteItemInternal(completeUrl, cancellationToken);
@@ -730,7 +732,7 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="cancellationToken">Cancellation Token (optional)</param>
         public virtual async Task<bool> Delete(string oneDriveItemPath, CancellationToken cancellationToken = new())
         {
-            return await DeleteItemInternal(string.Concat("drive/root:/", oneDriveItemPath), cancellationToken);
+            return await DeleteItemInternal($"drive/root:/{oneDriveItemPath}", cancellationToken);
         }
 
         /// <summary>
@@ -743,8 +745,8 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>True if successful, false if failed</returns>
         public virtual async Task<bool> Copy(string oneDriveSourceItemPath, string oneDriveDestinationItemPath, string destinationName = null, CancellationToken cancellationToken = new())
         {
-            var oneDriveSourceItem = await GetItem(oneDriveSourceItemPath);
-            var oneDriveDestinationItem = await GetItem(oneDriveDestinationItemPath);
+            var oneDriveSourceItem = await GetItem(oneDriveSourceItemPath, cancellationToken);
+            var oneDriveDestinationItem = await GetItem(oneDriveDestinationItemPath, cancellationToken);
             return await Copy(oneDriveSourceItem, oneDriveDestinationItem, destinationName, cancellationToken);
         }
 
@@ -770,8 +772,8 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>True if successful, false if failed</returns>
         public virtual async Task<bool> Move(string oneDriveSourceItemPath, string oneDriveDestinationItemPath, CancellationToken cancellationToken = new())
         {
-            var oneDriveSourceItem = await GetItem(oneDriveSourceItemPath);
-            var oneDriveDestinationItem = await GetItem(oneDriveDestinationItemPath);
+            var oneDriveSourceItem = await GetItem(oneDriveSourceItemPath, cancellationToken);
+            var oneDriveDestinationItem = await GetItem(oneDriveDestinationItemPath, cancellationToken);
             return await Move(oneDriveSourceItem, oneDriveDestinationItem, cancellationToken);
         }
 
@@ -796,7 +798,7 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>True if successful, false if failed</returns>
         public virtual async Task<bool> Rename(string oneDriveItemPath, string name, CancellationToken cancellationToken = new())
         {
-            var oneDriveItem = await GetItem(oneDriveItemPath);
+            var oneDriveItem = await GetItem(oneDriveItemPath, cancellationToken);
             return await Rename(oneDriveItem, name, cancellationToken);
         }
 
@@ -821,7 +823,7 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>True if download was successful, false if it failed</returns>
         public virtual async Task<bool> DownloadItem(string path, string saveTo, CancellationToken cancellationToken = new())
         {
-            var oneDriveItem = await GetItem(path);
+            var oneDriveItem = await GetItem(path, cancellationToken);
             return await DownloadItem(oneDriveItem, saveTo, cancellationToken);
         }
 
@@ -864,17 +866,17 @@ namespace KoenZomers.OneDrive.Api
             if (oneDriveItem.RemoteItem != null)
             {
                 // Item to download is shared from another drive
-                completeUrl = string.Concat("drives/", oneDriveItem.RemoteItem.ParentReference.DriveId, "/items/", oneDriveItem.RemoteItem.Id, "/content");
+                completeUrl = $"drives/{oneDriveItem.RemoteItem.ParentReference.DriveId}/items/{oneDriveItem.RemoteItem.Id}/content";
             }
             else if (oneDriveItem.ParentReference != null && !string.IsNullOrEmpty(oneDriveItem.ParentReference.DriveId))
             {
                 // Item to download is shared from another drive
-                completeUrl = string.Concat("drives/", oneDriveItem.ParentReference.DriveId, "/items/", oneDriveItem.Id, "/content");
+                completeUrl = $"drives/{oneDriveItem.ParentReference.DriveId}/items/{oneDriveItem.Id}/content";
             }
             else
             {
                 // Item to download resides on the current user its drive
-                completeUrl = string.Concat("drive/items/", oneDriveItem.Id, "/content");
+                completeUrl = $"drive/items/{oneDriveItem.Id}/content";
             }
 
             completeUrl = ConstructCompleteUrl(completeUrl);
@@ -897,7 +899,7 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>Stream with the contents of the item on OneDrive</returns>
         public virtual async Task<Stream> DownloadItem(string path, CancellationToken cancellationToken = new())
         {
-            var oneDriveItem = await GetItem(path);
+            var oneDriveItem = await GetItem(path, cancellationToken);
             return await DownloadItem(oneDriveItem, cancellationToken);
         }
 
@@ -914,17 +916,17 @@ namespace KoenZomers.OneDrive.Api
             if (oneDriveItem.RemoteItem != null)
             {
                 // Item to download is shared from another drive
-                completeUrl = string.Concat("drives/", oneDriveItem.RemoteItem.ParentReference.DriveId, "/items/", oneDriveItem.RemoteItem.Id, "/content");
+                completeUrl = $"drives/{oneDriveItem.RemoteItem.ParentReference.DriveId}/items/{oneDriveItem.RemoteItem.Id}/content";
             }
             else if (oneDriveItem.ParentReference != null && !string.IsNullOrEmpty(oneDriveItem.ParentReference.DriveId))
             {
                 // Item to download is shared from another drive
-                completeUrl = string.Concat("drives/", oneDriveItem.ParentReference.DriveId, "/items/", oneDriveItem.Id, "/content");
+                completeUrl = $"drives/{oneDriveItem.ParentReference.DriveId}/items/{oneDriveItem.Id}/content";
             }
             else
             {
                 // Item to download resides on the current user its drive
-                completeUrl = string.Concat("drive/items/", oneDriveItem.Id, "/content");
+                completeUrl = $"drive/items/{oneDriveItem.Id}/content";
             }
 
             completeUrl = ConstructCompleteUrl(completeUrl);
@@ -987,7 +989,7 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>OneDriveItem representing the uploaded file when successful or NULL when the upload failed</returns>
         public virtual async Task<OneDriveItem> UploadFile(string filePath, string oneDriveFolder, CancellationToken cancellationToken = new())
         {
-            var oneDriveItem = await GetItem(oneDriveFolder);
+            var oneDriveItem = await GetItem(oneDriveFolder, cancellationToken);
             return await UploadFile(filePath, oneDriveItem, cancellationToken);
         }
 
@@ -1001,7 +1003,7 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>OneDriveItem representing the uploaded file when successful or NULL when the upload failed</returns>
         public virtual async Task<OneDriveItem> UploadFileAs(string filePath, string fileName, string oneDriveFolder, CancellationToken cancellationToken = new())
         {
-            var oneDriveItem = await GetItem(oneDriveFolder);
+            var oneDriveItem = await GetItem(oneDriveFolder, cancellationToken);
             return await UploadFileAs(filePath, fileName, oneDriveItem, cancellationToken);
         }
 
@@ -1015,7 +1017,7 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>OneDriveItem representing the uploaded file when successful or NULL when the upload failed</returns>
         public virtual async Task<OneDriveItem> UploadFileAs(Stream fileStream, string fileName, string oneDriveFolder, CancellationToken cancellationToken = new())
         {
-            var oneDriveItem = await GetItem(oneDriveFolder);
+            var oneDriveItem = await GetItem(oneDriveFolder, cancellationToken);
             return await UploadFileAs(fileStream, fileName, oneDriveItem, cancellationToken);
         }
 
@@ -1109,7 +1111,7 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>OneDriveItem entity representing the newly created folder or NULL if the operation fails</returns>
         public virtual async Task<OneDriveItem> CreateFolder(string parentPath, string folderName, CancellationToken cancellationToken = new())
         {
-            return await CreateFolderInternal(!string.IsNullOrEmpty(parentPath) ? string.Concat("drive/root:/", parentPath, ":/children") : "drive/root/children", folderName, cancellationToken);
+            return await CreateFolderInternal(!string.IsNullOrEmpty(parentPath) ? $"drive/root:/{parentPath}:/children" : "drive/root/children", folderName, cancellationToken);
         }
 
         /// <summary>
@@ -1126,13 +1128,13 @@ namespace KoenZomers.OneDrive.Api
             if (parentItem.RemoteItem != null)
             {
                 // Item where to create a new folder is shared from another drive
-                completeUrl = string.Concat("drives/", parentItem.RemoteItem.ParentReference.DriveId, "/items/", parentItem.RemoteItem.Id, "/children");
+                completeUrl = $"drives/{parentItem.RemoteItem.ParentReference.DriveId}/items/{parentItem.RemoteItem.Id}/children";
             }
 
             else
             {
                 // Item where to create a new folder resides on the current user its drive
-                completeUrl = string.Concat("drive/items/", parentItem.Id, "/children");
+                completeUrl = $"drive/items/{parentItem.Id}/children";
             }
 
             return await CreateFolderInternal(completeUrl, folderName, cancellationToken);
@@ -1147,7 +1149,7 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>OneDrivePermission entity representing the share or NULL if the operation fails</returns>
         public virtual async Task<OneDrivePermission> ShareItem(string itemPath, OneDriveLinkType linkType, CancellationToken cancellationToken = new())
         {
-            return await ShareItemInternal(string.Concat("drive/root:/", itemPath, ":/oneDrive.createLink"), linkType, cancellationToken: cancellationToken);
+            return await ShareItemInternal($"drive/root:/{itemPath}:/oneDrive.createLink", linkType, cancellationToken: cancellationToken);
         }
 
         /// <summary>
@@ -1159,7 +1161,7 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>OneDrivePermission entity representing the share or NULL if the operation fails</returns>
         public virtual async Task<OneDrivePermission> ShareItem(OneDriveItem item, OneDriveLinkType linkType, CancellationToken cancellationToken = new())
         {
-            return await ShareItemInternal(string.Concat("drive/items/", item.Id, "/oneDrive.createLink"), linkType, cancellationToken: cancellationToken);
+            return await ShareItemInternal($"drive/items/{item.Id}/oneDrive.createLink", linkType, cancellationToken: cancellationToken);
         }
 
         /// <summary>
@@ -1316,7 +1318,7 @@ namespace KoenZomers.OneDrive.Api
         protected virtual async Task<Stream> DownloadItemInternal(OneDriveItem item, string completeUrl, CancellationToken cancellationToken = new())
         {
             // Get an access token to perform the request to OneDrive
-            var accessToken = await GetAccessToken();
+            var accessToken = await GetAccessToken(cancellationToken);
 
             // Create an HTTPClient instance to communicate with the REST API of OneDrive
             var client = CreateHttpClient(accessToken.AccessToken);
@@ -1377,22 +1379,22 @@ namespace KoenZomers.OneDrive.Api
             if (oneDriveItem.RemoteItem != null)
             {
                 // Item will be uploaded to another drive
-                completeUrl = string.Concat("drives/", oneDriveItem.RemoteItem.ParentReference.DriveId, "/items/", oneDriveItem.Id, "/content");
+                completeUrl = $"drives/{oneDriveItem.RemoteItem.ParentReference.DriveId}/items/{oneDriveItem.Id}/content";
             }
             else if (oneDriveItem.ParentReference != null && !string.IsNullOrEmpty(oneDriveItem.ParentReference.DriveId))
             {
                 // Item will be uploaded to another drive
-                completeUrl = string.Concat("drives/", oneDriveItem.ParentReference.DriveId, "/items/", oneDriveItem.Id, "/content");
+                completeUrl = $"drives/{oneDriveItem.ParentReference.DriveId}/items/{oneDriveItem.Id}/content";
             }
             else if (!string.IsNullOrEmpty(oneDriveItem.WebUrl) && oneDriveItem.WebUrl.Contains("cid="))
             {
                 // Item will be uploaded to another drive. Used by OneDrive Personal when using a shared item.
-                completeUrl = string.Concat("drives/", oneDriveItem.WebUrl.Remove(0, oneDriveItem.WebUrl.IndexOf("cid=") + 4), "/items/", oneDriveItem.Id, "/content");
+                completeUrl = $"drives/{oneDriveItem.WebUrl.Remove(0, oneDriveItem.WebUrl.IndexOf("cid=", StringComparison.Ordinal) + 4)}/items/{oneDriveItem.Id}/content";
             }
             else
             {
                 // Item will be uploaded to the current user its drive
-                completeUrl = string.Concat("drive/items/", oneDriveItem.Id, "/content");
+                completeUrl = $"drive/items/{oneDriveItem.Id}/content";
             }
 
             completeUrl = ConstructCompleteUrl(completeUrl);
@@ -1415,25 +1417,25 @@ namespace KoenZomers.OneDrive.Api
             if (parentFolder.RemoteItem != null)
             {
                 // Item will be uploaded to another drive
-                completeUrl = string.Concat("drives/", parentFolder.RemoteItem.ParentReference.DriveId, "/items/", parentFolder.RemoteItem.Id, "/children/", fileName, "/content");
+                completeUrl = $"drives/{parentFolder.RemoteItem.ParentReference.DriveId}/items/{parentFolder.RemoteItem.Id}/children/{fileName}/content";
             }
             else if (parentFolder.ParentReference != null && !string.IsNullOrEmpty(parentFolder.ParentReference.DriveId))
             {
                 // Item will be uploaded to another drive
                 // Koen
-                var existingItem = GetItemFromDriveById("", parentFolder.ParentReference.DriveId);
+                var existingItem = GetItemFromDriveById("", parentFolder.ParentReference.DriveId, cancellationToken);
 
-                completeUrl = string.Concat("drives/", parentFolder.ParentReference.DriveId, "/items/", parentFolder.Id, "/children/", fileName, "/content");
+                completeUrl = $"drives/{parentFolder.ParentReference.DriveId}/items/{parentFolder.Id}/children/{fileName}/content";
             }
             else if(!string.IsNullOrEmpty(parentFolder.WebUrl) && parentFolder.WebUrl.Contains("cid="))
             {
                 // Item will be uploaded to another drive. Used by OneDrive Personal when using a shared item.
-                completeUrl = string.Concat("drives/", parentFolder.WebUrl.Remove(0, parentFolder.WebUrl.IndexOf("cid=") + 4), "/items/", parentFolder.Id, "/children/", fileName, "/content");
+                completeUrl = $"drives/{parentFolder.WebUrl.Remove(0, parentFolder.WebUrl.IndexOf("cid=", StringComparison.Ordinal) + 4)}/items/{parentFolder.Id}/children/{fileName}/content";
             }
             else
             {
                 // Item will be uploaded to the current user its drive
-                completeUrl = string.Concat("drive/items/", parentFolder.Id, "/children/", fileName, "/content");
+                completeUrl = $"drive/items/{parentFolder.Id}/children/{fileName}/content";
             }
 
             completeUrl = ConstructCompleteUrl(completeUrl);
@@ -1451,7 +1453,7 @@ namespace KoenZomers.OneDrive.Api
         protected async Task<OneDriveItem> UploadFileViaSimpleUploadInternal(Stream fileStream, string oneDriveUrl, CancellationToken cancellationToken = new())
         { 
             // Get an access token to perform the request to OneDrive
-            var accessToken = await GetAccessToken();
+            var accessToken = await GetAccessToken(cancellationToken);
 
             // Create an HTTPClient instance to communicate with the REST API of OneDrive
             using (var client = CreateHttpClient(accessToken.AccessToken))
@@ -1508,7 +1510,7 @@ namespace KoenZomers.OneDrive.Api
             // Read the file to upload
             using (var fileStream = file.OpenRead())
             {
-                return await UploadFileViaSimpleUpload(fileStream, fileName, oneDriveItem);
+                return await UploadFileViaSimpleUpload(fileStream, fileName, oneDriveItem, cancellationToken);
             }
         }
 
@@ -1569,7 +1571,7 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>OneDriveItem instance representing the uploaded item</returns>
         public virtual async Task<OneDriveItem> UploadFileViaResumableUpload(Stream fileStream, string fileName, OneDriveItem parentFolder, long? fragmentSizeInBytes, CancellationToken cancellationToken = new())
         {
-            var oneDriveUploadSession = await CreateResumableUploadSession(fileName, parentFolder);
+            var oneDriveUploadSession = await CreateResumableUploadSession(fileName, parentFolder, cancellationToken);
             return await UploadFileViaResumableUploadInternal(fileStream, oneDriveUploadSession, fragmentSizeInBytes, cancellationToken);
         }
 
@@ -1675,7 +1677,7 @@ namespace KoenZomers.OneDrive.Api
                         var amountOfBytesToSend = (int) (endPosition - currentPosition);
 
                         // Copy the bytes from the source file into the buffer
-                        await fileStream.ReadAsync(fragmentBuffer, 0, amountOfBytesToSend);
+                        await fileStream.ReadExactlyAsync(fragmentBuffer, 0, amountOfBytesToSend, cancellationToken);
 
                         // Load the content to upload
                         using (var content = new ByteArrayContent(fragmentBuffer, 0, amountOfBytesToSend))
@@ -1684,7 +1686,7 @@ namespace KoenZomers.OneDrive.Api
                             content.Headers.Add("Content-Type", "application/octet-stream");
 
                             // Provide information to OneDrive which range of bytes we're going to send and the total amount of bytes the file exists out of
-                            content.Headers.Add("Content-Range", string.Concat("bytes ", currentPosition, "-", endPosition - 1, "/", fileStream.Length));
+                            content.Headers.Add("Content-Range", $"bytes {currentPosition}-{endPosition - 1}/{fileStream.Length}");
 
                             // Construct the PUT message towards the webservice containing the binary data
                             using (var request = new HttpRequestMessage(HttpMethod.Put, oneDriveUploadSession.UploadUrl))
@@ -1693,7 +1695,7 @@ namespace KoenZomers.OneDrive.Api
                                 request.Content = content;
 
                                 // Send the data to the webservice
-                                using (var response = await client.SendAsync(request))
+                                using (var response = await client.SendAsync(request, cancellationToken))
                                 {
                                     // Check the response code
                                     switch (response.StatusCode)
@@ -1765,22 +1767,22 @@ namespace KoenZomers.OneDrive.Api
             if (oneDriveItem.RemoteItem != null)
             {
                 // Item will be uploaded to another drive
-                completeUrl = string.Concat("drives/", oneDriveItem.RemoteItem.ParentReference.DriveId, "/items/", oneDriveItem.RemoteItem.Id, "/upload.createSession");
+                completeUrl = $"drives/{oneDriveItem.RemoteItem.ParentReference.DriveId}/items/{oneDriveItem.RemoteItem.Id}/upload.createSession";
             }
             else if (oneDriveItem.ParentReference != null && !string.IsNullOrEmpty(oneDriveItem.ParentReference.DriveId))
             {
                 // Item will be uploaded to another drive
-                completeUrl = string.Concat("drives/", oneDriveItem.ParentReference.DriveId, "/items/", oneDriveItem.Id, "/upload.createSession");
+                completeUrl = $"drives/{oneDriveItem.ParentReference.DriveId}/items/{oneDriveItem.Id}/upload.createSession";
             }
             else if (!string.IsNullOrEmpty(oneDriveItem.WebUrl) && oneDriveItem.WebUrl.Contains("cid="))
             {
                 // Item will be uploaded to another drive. Used by OneDrive Personal when using a shared item.
-                completeUrl = string.Concat("drives/", oneDriveItem.WebUrl.Remove(0, oneDriveItem.WebUrl.IndexOf("cid=") + 4), "/items/", oneDriveItem.Id, "/upload.createSession");
+                completeUrl = $"drives/{oneDriveItem.WebUrl.Remove(0, oneDriveItem.WebUrl.IndexOf("cid=") + 4)}/items/{oneDriveItem.Id}/upload.createSession";
             }
             else
             {
                 // Item will be uploaded to the current user its drive
-                completeUrl = string.Concat("drive/items/", oneDriveItem.Id, "/upload.createSession");
+                completeUrl = $"drive/items/{oneDriveItem.Id}/upload.createSession";
             }
 
             completeUrl = ConstructCompleteUrl(completeUrl);
@@ -1814,22 +1816,22 @@ namespace KoenZomers.OneDrive.Api
             if (oneDriveFolder.RemoteItem != null)
             {
                 // Item will be uploaded to another drive
-                completeUrl = string.Concat("drives/", oneDriveFolder.RemoteItem.ParentReference.DriveId, "/items/", oneDriveFolder.RemoteItem.Id, ":/", fileName, ":/upload.createSession");
+                completeUrl = $"drives/{oneDriveFolder.RemoteItem.ParentReference.DriveId}/items/{oneDriveFolder.RemoteItem.Id}:/{fileName}:/upload.createSession";
             }
             else if (oneDriveFolder.ParentReference != null && !string.IsNullOrEmpty(oneDriveFolder.ParentReference.DriveId))
             {
                 // Item will be uploaded to another drive
-                completeUrl = string.Concat("drives/", oneDriveFolder.ParentReference.DriveId, "/items/", oneDriveFolder.Id, ":/", fileName, ":/upload.createSession");
+                completeUrl = $"drives/{oneDriveFolder.ParentReference.DriveId}/items/{oneDriveFolder.Id}:/{fileName}:/upload.createSession";
             }
             else if (!string.IsNullOrEmpty(oneDriveFolder.WebUrl) && oneDriveFolder.WebUrl.Contains("cid="))
             {
                 // Item will be uploaded to another drive. Used by OneDrive Personal when using a shared item.
-                completeUrl = string.Concat("drives/", oneDriveFolder.WebUrl.Remove(0, oneDriveFolder.WebUrl.IndexOf("cid=") + 4), "/items/", oneDriveFolder.Id, ":/", fileName, ":/upload.createSession");
+                completeUrl = $"drives/{oneDriveFolder.WebUrl.Remove(0, oneDriveFolder.WebUrl.IndexOf("cid=") + 4)}/items/{oneDriveFolder.Id}:/{fileName}:/upload.createSession";
             }
             else
             {
                 // Item will be uploaded to the current user its drive
-                completeUrl = string.Concat("drive/items/", oneDriveFolder.Id, ":/", fileName, ":/upload.createSession");
+                completeUrl = $"drive/items/{oneDriveFolder.Id}:/{fileName}:/upload.createSession";
             }
 
             completeUrl = ConstructCompleteUrl(completeUrl);
@@ -1897,12 +1899,12 @@ namespace KoenZomers.OneDrive.Api
             if (oneDriveSource.RemoteItem != null)
             {
                 // Item to copy is shared from another drive
-                completeUrl = string.Concat("drives/", oneDriveSource.RemoteItem.ParentReference.DriveId, "/items/", oneDriveSource.RemoteItem.Id, "/action.copy");
+                completeUrl = $"drives/{oneDriveSource.RemoteItem.ParentReference.DriveId}/items/{oneDriveSource.RemoteItem.Id}/action.copy";
             }
             else
             {
                 // Item to copy resides on the current user its drive
-                completeUrl = string.Concat("drive/items/", oneDriveSource.Id, "/action.copy");
+                completeUrl = $"drive/items/{oneDriveSource.Id}/action.copy";
             }
 
             completeUrl = ConstructCompleteUrl(completeUrl);
@@ -1976,12 +1978,12 @@ namespace KoenZomers.OneDrive.Api
             if (oneDriveSource.RemoteItem != null)
             {
                 // Item to copy is shared from another drive
-                completeUrl = string.Concat("drives/", oneDriveSource.RemoteItem.ParentReference.DriveId, "/items/", oneDriveSource.RemoteItem.Id);
+                completeUrl = $"drives/{oneDriveSource.RemoteItem.ParentReference.DriveId}/items/{oneDriveSource.RemoteItem.Id}";
             }
             else
             {
                 // Item to copy resides on the current user its drive
-                completeUrl = string.Concat("drive/items/", oneDriveSource.Id);
+                completeUrl = $"drive/items/{oneDriveSource.Id}";
             }
 
             completeUrl = ConstructCompleteUrl(completeUrl);
@@ -2102,7 +2104,7 @@ namespace KoenZomers.OneDrive.Api
         protected virtual async Task<HttpResponseMessage> SendMessageReturnHttpResponse(string bodyText, HttpMethod httpMethod, string url, bool preferRespondAsync = false, CancellationToken cancellationToken = new())
         {
             // Get an access token to perform the request to OneDrive
-            var accessToken = await GetAccessToken();
+            var accessToken = await GetAccessToken(cancellationToken);
 
             // Create an HTTPClient instance to communicate with the REST API of OneDrive
             using (var client = CreateHttpClient(accessToken.AccessToken))
