@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using KoenZomers.OneDrive.Api.Entities;
 using KoenZomers.OneDrive.Api.Helpers;
@@ -57,11 +58,12 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="clientId">OneDrive Client ID to use to connect</param>
         /// <param name="clientSecret">OneDrive Client Secret to use to connect</param>
         /// <param name="refreshToken">Refreshtoken to use to get an access token</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         [Obsolete("Use AuthenticateUsingRefreshToken instead")]
-        public static async Task<OneDriveApi> GetOneDriveApiFromRefreshToken(string clientId, string clientSecret, string refreshToken)
+        public static async Task<OneDriveApi> GetOneDriveApiFromRefreshToken(string clientId, string clientSecret, string refreshToken, CancellationToken cancellationToken = new())
         {
             var oneDriveApi = new OneDriveConsumerApi(clientId, clientSecret);
-            oneDriveApi.AccessToken = await oneDriveApi.GetAccessTokenFromRefreshToken(refreshToken);
+            oneDriveApi.AccessToken = await oneDriveApi.GetAccessTokenFromRefreshToken(refreshToken, cancellationToken);
 
             return oneDriveApi;
         }
@@ -70,9 +72,10 @@ namespace KoenZomers.OneDrive.Api
         /// Gets an access token from the provided refresh token
         /// </summary>
         /// <param name="refreshToken">Refresh token</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>Access token for OneDrive</returns>
         /// <exception cref="Exceptions.TokenRetrievalFailedException">Thrown when unable to retrieve a valid access token</exception>
-        protected override async Task<OneDriveAccessToken> GetAccessTokenFromRefreshToken(string refreshToken)
+        protected override async Task<OneDriveAccessToken> GetAccessTokenFromRefreshToken(string refreshToken, CancellationToken cancellationToken = new())
         {
             var queryBuilder = new QueryStringBuilder();
             queryBuilder.Add("client_id", ClientId);
@@ -80,7 +83,7 @@ namespace KoenZomers.OneDrive.Api
             queryBuilder.Add("client_secret", ClientSecret);
             queryBuilder.Add("refresh_token", refreshToken);
             queryBuilder.Add("grant_type", "refresh_token");
-            return await PostToTokenEndPoint(queryBuilder);
+            return await PostToTokenEndPoint(queryBuilder, cancellationToken);
         }
 
         /// <summary>
@@ -107,9 +110,10 @@ namespace KoenZomers.OneDrive.Api
         /// Gets an access token from the provided authorization token
         /// </summary>
         /// <param name="authorizationToken">Authorization token</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>Access token for OneDrive</returns>
         /// <exception cref="Exceptions.TokenRetrievalFailedException">Thrown when unable to retrieve a valid access token</exception>
-        protected override async Task<OneDriveAccessToken> GetAccessTokenFromAuthorizationToken(string authorizationToken)
+        protected override async Task<OneDriveAccessToken> GetAccessTokenFromAuthorizationToken(string authorizationToken, CancellationToken cancellationToken = new())
         {
             var queryBuilder = new QueryStringBuilder();
             queryBuilder.Add("client_id", ClientId);
@@ -118,7 +122,7 @@ namespace KoenZomers.OneDrive.Api
             queryBuilder.Add("code", authorizationToken);
             queryBuilder.Add("grant_type", "authorization_code");
 
-            return await PostToTokenEndPoint(queryBuilder);
+            return await PostToTokenEndPoint(queryBuilder, cancellationToken);
         }
 
         #endregion
@@ -132,7 +136,7 @@ namespace KoenZomers.OneDrive.Api
         /// <returns>True if filename is valid to be used, false if it isn't</returns>
         public override bool ValidFilename(string filename)
         {
-            char[] restrictedCharacters = { '\\', '/', ':', '*', '?', '<', '>', '|' };
+            char[] restrictedCharacters = ['\\', '/', ':', '*', '?', '<', '>', '|'];
             return filename.IndexOfAny(restrictedCharacters) == -1;
         }
 

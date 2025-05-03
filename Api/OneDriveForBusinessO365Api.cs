@@ -9,6 +9,7 @@ using System.Text.Json.Serialization;
 using KoenZomers.OneDrive.Api.Enums;
 using System.Net.Http;
 using System.Text.Json;
+using System.Threading;
 
 namespace KoenZomers.OneDrive.Api
 {
@@ -119,13 +120,14 @@ namespace KoenZomers.OneDrive.Api
         /// Gets an access token from the provided refresh token
         /// </summary>
         /// <param name="refreshToken">Refresh token</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>Access token for OneDrive or NULL if unable to retrieve an access token</returns>
-        protected override async Task<OneDriveAccessToken> GetAccessTokenFromRefreshToken(string refreshToken)
+        protected override async Task<OneDriveAccessToken> GetAccessTokenFromRefreshToken(string refreshToken, CancellationToken cancellationToken = new())
         {
             var discoveryAccessToken = await GetAccessTokenFromRefreshToken(refreshToken, "https://api.office.com/discovery/");
             var oneDriveForBusinessService = await DiscoverOneDriveForBusinessService(discoveryAccessToken.AccessToken);
 
-            OneDriveApiBaseUrl = string.Concat(oneDriveForBusinessService.ServiceEndPointUri, "/");
+            OneDriveApiBaseUrl = $"{oneDriveForBusinessService.ServiceEndPointUri}/";
 
             var oneDriveForBusinessAccessToken = await GetAccessTokenFromRefreshToken(refreshToken, oneDriveForBusinessService.ServiceResourceId);
             return oneDriveForBusinessAccessToken;
@@ -135,13 +137,14 @@ namespace KoenZomers.OneDrive.Api
         /// Gets an access token from the provided authorization token
         /// </summary>
         /// <param name="authorizationToken">Authorization token</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>Access token for OneDrive or NULL if unable to retrieve an access token</returns>
-        protected override async Task<OneDriveAccessToken> GetAccessTokenFromAuthorizationToken(string authorizationToken)
+        protected override async Task<OneDriveAccessToken> GetAccessTokenFromAuthorizationToken(string authorizationToken, CancellationToken cancellationToken = new())
         {
             var discoveryAccessToken = await GetAccessTokenFromAuthorizationToken(authorizationToken, "https://api.office.com/discovery/");
             var oneDriveForBusinessService = await DiscoverOneDriveForBusinessService(discoveryAccessToken.AccessToken);
 
-            OneDriveApiBaseUrl = string.Concat(oneDriveForBusinessService.ServiceEndPointUri, "/");
+            OneDriveApiBaseUrl = $"{oneDriveForBusinessService.ServiceEndPointUri}/";
 
             var oneDriveForBusinessAccessToken = await GetAccessTokenFromRefreshToken(discoveryAccessToken.RefreshToken, oneDriveForBusinessService.ServiceResourceId);
             return oneDriveForBusinessAccessToken;
@@ -233,10 +236,11 @@ namespace KoenZomers.OneDrive.Api
         /// <summary>
         /// Returns all the items that have been shared by others through OneDrive for Business with the current user
         /// </summary>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>Collection with items that have been shared by others with the current user</returns>
-        public override async Task<OneDriveItemCollection> GetSharedWithMe()
+        public override async Task<OneDriveItemCollection> GetSharedWithMe(CancellationToken cancellationToken = new())
         {
-            var oneDriveItems = await GetData<OneDriveItemCollection>("drive/view.sharedWithMe");
+            var oneDriveItems = await GetData<OneDriveItemCollection>("drive/view.sharedWithMe", cancellationToken);
             return oneDriveItems;
         }
 
@@ -245,10 +249,11 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="itemPath">The path to the OneDrive item to share</param>
         /// <param name="linkType">Type of sharing to request</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDrivePermission entity representing the share or NULL if the operation fails</returns>
-        public override async Task<OneDrivePermission> ShareItem(string itemPath, OneDriveLinkType linkType)
+        public override async Task<OneDrivePermission> ShareItem(string itemPath, OneDriveLinkType linkType, CancellationToken cancellationToken = new())
         {
-            return await ShareItemInternal(string.Concat("drive/root:/", itemPath, ":/createLink"), linkType);
+            return await ShareItemInternal($"drive/root:/{itemPath}:/createLink", linkType, cancellationToken: cancellationToken);
         }
 
         /// <summary>
@@ -256,10 +261,11 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="item">The OneDrive item to share</param>
         /// <param name="linkType">Type of sharing to request</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDrivePermission entity representing the share or NULL if the operation fails</returns>
-        public override async Task<OneDrivePermission> ShareItem(OneDriveItem item, OneDriveLinkType linkType)
+        public override async Task<OneDrivePermission> ShareItem(OneDriveItem item, OneDriveLinkType linkType, CancellationToken cancellationToken = new())
         {
-            return await ShareItemInternal(string.Concat("drive/items/", item.Id, "/createLink"), linkType);
+            return await ShareItemInternal($"drive/items/{item.Id}/createLink", linkType, cancellationToken: cancellationToken);
         }
 
         /// <summary>
@@ -268,10 +274,11 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="itemPath">The path to the OneDrive item to share</param>
         /// <param name="linkType">Type of sharing to request</param>
         /// <param name="scope">Scope defining who has access to the shared item</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDrivePermission entity representing the share or NULL if the operation fails</returns>
-        public async Task<OneDrivePermission> ShareItem(string itemPath, OneDriveLinkType linkType, OneDriveSharingScope scope)
+        public async Task<OneDrivePermission> ShareItem(string itemPath, OneDriveLinkType linkType, OneDriveSharingScope scope, CancellationToken cancellationToken = new())
         {
-            return await ShareItemInternal(string.Concat("drive/root:/", itemPath, ":/createLink"), linkType, scope);
+            return await ShareItemInternal($"drive/root:/{itemPath}:/createLink", linkType, scope, cancellationToken);
         }
 
         /// <summary>
@@ -280,10 +287,11 @@ namespace KoenZomers.OneDrive.Api
         /// <param name="item">The OneDrive item to share</param>
         /// <param name="linkType">Type of sharing to request</param>
         /// <param name="scope">Scope defining who has access to the shared item</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDrivePermission entity representing the share or NULL if the operation fails</returns>
-        public async Task<OneDrivePermission> ShareItem(OneDriveItem item, OneDriveLinkType linkType, OneDriveSharingScope scope)
+        public async Task<OneDrivePermission> ShareItem(OneDriveItem item, OneDriveLinkType linkType, OneDriveSharingScope scope, CancellationToken cancellationToken = new())
         {
-            return await ShareItemInternal(string.Concat("drive/items/", item.Id, "/createLink"), linkType, scope);
+            return await ShareItemInternal($"drive/items/{item.Id}/createLink", linkType, scope, cancellationToken);
         }
 
         /// <summary>
@@ -291,11 +299,12 @@ namespace KoenZomers.OneDrive.Api
         /// </summary>
         /// <param name="fileName">Filename to store the uploaded content under</param>
         /// <param name="oneDriveItem">OneDriveItem container in which the file should be uploaded</param>
+        /// <param name="cancellationToken">Cancellation Token (optional)</param>
         /// <returns>OneDriveUploadSession instance containing the details where to upload the content to</returns>
-        protected override async Task<OneDriveUploadSession> CreateResumableUploadSession(string fileName, OneDriveItem oneDriveItem)
+        protected override async Task<OneDriveUploadSession> CreateResumableUploadSession(string fileName, OneDriveItem oneDriveItem, CancellationToken cancellationToken = new())
         {
             // Construct the complete URL to call
-            var completeUrl = string.Concat(OneDriveApiBaseUrl, "drive/items/", oneDriveItem.Id, ":/", fileName, ":/createUploadSession");
+            var completeUrl = $"{OneDriveApiBaseUrl}drive/items/{oneDriveItem.Id}:/{fileName}:/createUploadSession";
 
             // Construct the OneDriveUploadSessionItemContainer entity with the upload details
             // Add the conflictbehavior header to always overwrite the file if it already exists on OneDrive
@@ -308,7 +317,7 @@ namespace KoenZomers.OneDrive.Api
             };
 
             // Call the OneDrive webservice
-            var result = await SendMessageReturnOneDriveItem<OneDriveUploadSession>(uploadItemContainer, HttpMethod.Post, completeUrl, HttpStatusCode.OK);
+            var result = await SendMessageReturnOneDriveItem<OneDriveUploadSession>(uploadItemContainer, HttpMethod.Post, completeUrl, HttpStatusCode.OK, cancellationToken);
             return result;
         }
 
