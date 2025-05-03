@@ -17,7 +17,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Images", "Images", "{8B6344
 		Images\SolutionExplorer.png = Images\SolutionExplorer.png
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "API", "Api\API.csproj", "{441342CC-529B-4AC1-8FA6-446697E2C39E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OneDrive", "Api\OneDrive.csproj", "{CFB7E571-EAA2-47F7-8CD8-EFD24FDF5C61}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -29,10 +29,10 @@ Global
 		{6BC98275-D540-42C6-996D-15D0A5BF2110}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6BC98275-D540-42C6-996D-15D0A5BF2110}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6BC98275-D540-42C6-996D-15D0A5BF2110}.Release|Any CPU.Build.0 = Release|Any CPU
-		{441342CC-529B-4AC1-8FA6-446697E2C39E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{441342CC-529B-4AC1-8FA6-446697E2C39E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{441342CC-529B-4AC1-8FA6-446697E2C39E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{441342CC-529B-4AC1-8FA6-446697E2C39E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CFB7E571-EAA2-47F7-8CD8-EFD24FDF5C61}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CFB7E571-EAA2-47F7-8CD8-EFD24FDF5C61}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CFB7E571-EAA2-47F7-8CD8-EFD24FDF5C61}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CFB7E571-EAA2-47F7-8CD8-EFD24FDF5C61}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
