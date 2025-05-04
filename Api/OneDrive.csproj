@@ -3,7 +3,7 @@
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
         <AssemblyName>GoLive.OneDrive.Api</AssemblyName>
-        <Version>2.5.0.0</Version>
+        <Version>2.6.0.0</Version>
         <Authors>Koen Zomers / Surgicalcoder</Authors>
         <Company>Koen Zomers / Surgicalcoder</Company>
         <Description>Evolution of library from Koen Zomers. API in .NET 9.0 to communicate with OneDrive Personal and OneDrive for Business</Description>
