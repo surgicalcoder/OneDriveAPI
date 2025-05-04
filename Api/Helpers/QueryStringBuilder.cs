@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace KoenZomers.OneDrive.Api.Helpers;
+namespace GoLive.OneDrive.Api.Helpers;
 
 /// <summary>
 /// Helper class for building querystrings

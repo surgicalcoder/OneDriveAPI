@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace KoenZomers.OneDrive.Api.Entities;
+namespace GoLive.OneDrive.Api.Entities;
 
 /// <summary>
 /// The DriveRecipient resource represents a person, group, or other recipient to share with using the invite action

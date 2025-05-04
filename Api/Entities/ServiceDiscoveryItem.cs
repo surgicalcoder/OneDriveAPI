@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace KoenZomers.OneDrive.Api.Entities;
+namespace GoLive.OneDrive.Api.Entities;
 
 /// <summary>
 /// Office365 Service Discovery result with one service result

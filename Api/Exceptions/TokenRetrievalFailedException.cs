@@ -1,7 +1,7 @@
 ﻿using System;
-using KoenZomers.OneDrive.Api.Entities;
+using GoLive.OneDrive.Api.Entities;
 
-namespace KoenZomers.OneDrive.Api.Exceptions;
+namespace GoLive.OneDrive.Api.Exceptions;
 
 /// <summary>
 /// Exception thrown when failing to retrieve a valid token to connect to OneDrive

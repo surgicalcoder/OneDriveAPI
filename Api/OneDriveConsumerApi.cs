@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using KoenZomers.OneDrive.Api.Entities;
-using KoenZomers.OneDrive.Api.Helpers;
+using GoLive.OneDrive.Api.Entities;
+using GoLive.OneDrive.Api.Helpers;
 
-namespace KoenZomers.OneDrive.Api;
+namespace GoLive.OneDrive.Api;
 
 /// <summary>
 /// API for the Consumer OneDrive

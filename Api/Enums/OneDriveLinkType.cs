@@ -1,6 +1,6 @@
 ﻿using System.Runtime.Serialization;
 
-namespace KoenZomers.OneDrive.Api.Enums;
+namespace GoLive.OneDrive.Api.Enums;
 
 /// <summary>
 /// Type of rights assignable to a OneDrive item

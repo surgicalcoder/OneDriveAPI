@@ -1,6 +1,6 @@
 ﻿using System.Runtime.Serialization;
 
-namespace KoenZomers.OneDrive.Api.Enums;
+namespace GoLive.OneDrive.Api.Enums;
 
 public enum OneDriveResyncLogicTypes
 {

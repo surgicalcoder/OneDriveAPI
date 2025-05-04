@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace KoenZomers.OneDrive.Api.Entities;
+namespace GoLive.OneDrive.Api.Entities;
 
 /// <summary>
 /// The IdentitySet type is a keyed collection of Identity objects. It is used to represent a set of identities

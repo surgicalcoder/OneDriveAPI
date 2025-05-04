@@ -11,12 +11,12 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
-using KoenZomers.OneDrive.Api.Entities;
-using KoenZomers.OneDrive.Api.Enums;
-using KoenZomers.OneDrive.Api.Exceptions;
-using KoenZomers.OneDrive.Api.Helpers;
+using GoLive.OneDrive.Api.Entities;
+using GoLive.OneDrive.Api.Enums;
+using GoLive.OneDrive.Api.Exceptions;
+using GoLive.OneDrive.Api.Helpers;
 
-namespace KoenZomers.OneDrive.Api;
+namespace GoLive.OneDrive.Api;
 
 /// <summary>
 /// Base OneDrive API functionality that is valid for either the Consumer OneDrive or the OneDrive for Business

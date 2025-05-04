@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace KoenZomers.OneDrive.Api.Entities;
+namespace GoLive.OneDrive.Api.Entities;
 
 /// <summary>
 /// Response to a new permission request on a OneDrive item

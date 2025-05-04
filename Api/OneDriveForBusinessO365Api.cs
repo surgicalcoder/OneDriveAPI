@@ -7,12 +7,12 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
-using KoenZomers.OneDrive.Api.Entities;
-using KoenZomers.OneDrive.Api.Enums;
-using KoenZomers.OneDrive.Api.Exceptions;
-using KoenZomers.OneDrive.Api.Helpers;
+using GoLive.OneDrive.Api.Entities;
+using GoLive.OneDrive.Api.Enums;
+using GoLive.OneDrive.Api.Exceptions;
+using GoLive.OneDrive.Api.Helpers;
 
-namespace KoenZomers.OneDrive.Api;
+namespace GoLive.OneDrive.Api;
 
 /// <summary>
 /// API for OneDrive for Business on Office 365

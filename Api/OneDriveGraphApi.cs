@@ -6,11 +6,11 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using KoenZomers.OneDrive.Api.Entities;
-using KoenZomers.OneDrive.Api.Enums;
-using KoenZomers.OneDrive.Api.Helpers;
+using GoLive.OneDrive.Api.Entities;
+using GoLive.OneDrive.Api.Enums;
+using GoLive.OneDrive.Api.Helpers;
 
-namespace KoenZomers.OneDrive.Api;
+namespace GoLive.OneDrive.Api;
 
 /// <summary>
 /// API for both OneDrive Personal and OneDrive for Business on Office 365 through the Microsoft Graph API

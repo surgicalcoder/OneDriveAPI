@@ -1,7 +1,7 @@
 ﻿using System.Text.Json.Serialization;
-using KoenZomers.OneDrive.Api.Enums;
+using GoLive.OneDrive.Api.Enums;
 
-namespace KoenZomers.OneDrive.Api.Entities;
+namespace GoLive.OneDrive.Api.Entities;
 
 public class OneDriveCreateFolder : OneDriveItemBase
 {

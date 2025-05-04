@@ -1,6 +1,6 @@
 ﻿using System.Runtime.Serialization;
 
-namespace KoenZomers.OneDrive.Api.Enums;
+namespace GoLive.OneDrive.Api.Enums;
 
 /// <summary>
 /// Scopes with which an item can be shared in OneDrive

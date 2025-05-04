@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace KoenZomers.OneDrive.Api.Entities;
+namespace GoLive.OneDrive.Api.Entities;
 
 /// <summary>
 /// Event arguments belonging to an event triggered to indicate progress in an upload to OneDrive

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace KoenZomers.OneDrive.Api.Entities;
+namespace GoLive.OneDrive.Api.Entities;
 
 public class OneDriveAsyncTask
 {

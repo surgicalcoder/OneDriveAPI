@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Text.Json.Serialization;
-using KoenZomers.OneDrive.Api.Enums;
+using GoLive.OneDrive.Api.Enums;
 
-namespace KoenZomers.OneDrive.Api.Entities;
+namespace GoLive.OneDrive.Api.Entities;
 
 /// <summary>
 /// The Item resource type represents metadata for an item in OneDrive. All top-level filesystem objects in OneDrive

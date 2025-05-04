@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace KoenZomers.OneDrive.Api.Exceptions;
+namespace GoLive.OneDrive.Api.Exceptions;
 
 /// <summary>
 /// Exception thrown when failing to parse a response returned by OneDrive
