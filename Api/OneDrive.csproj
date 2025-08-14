@@ -3,7 +3,7 @@
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
         <AssemblyName>GoLive.OneDrive.Api</AssemblyName>
-        <Version>2.6.0.1</Version>
+        <Version>2.6.0.2</Version>
         <Authors>Koen Zomers / Surgicalcoder</Authors>
         <Company>Koen Zomers / Surgicalcoder</Company>
         <Description>Evolution of library from Koen Zomers. API in .NET 9.0 to communicate with OneDrive Personal and OneDrive for Business</Description>
@@ -13,8 +13,8 @@
         <PackageLicenseUrl>https://github.com/KoenZomers/OneDriveAPI/blob/master/LICENSE.md</PackageLicenseUrl>
         <Copyright>Koen Zomers / Surgicalcoder</Copyright>
         <RootNamespace>GoLive.OneDrive.Api</RootNamespace>
-        <AssemblyVersion>2.6.0.1</AssemblyVersion>
-        <FileVersion>2.6.0.1</FileVersion>
+        <AssemblyVersion>2.6.0.2</AssemblyVersion>
+        <FileVersion>2.6.0.2</FileVersion>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

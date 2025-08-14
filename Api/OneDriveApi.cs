@@ -1759,7 +1759,7 @@ public abstract class OneDriveApi
             var fragmentBuffer = new byte[fragmentSizeInBytes ?? ResumableUploadChunkSizeInBytes];
 
             // Create an HTTPClient instance to communicate with the REST API of OneDrive to perform the upload 
-            using (var client = CreateHttpClient(accessToken.AccessToken))
+            using (var client = CreateHttpClient())
             {
                 // Keep looping through the source file length until we've sent all bytes to the OneDrive webservice
                 while (currentPosition < fileStream.Length)
@@ -1795,8 +1795,8 @@ public abstract class OneDriveApi
                         {
                             // Set the binary content to upload
                             request.Content = content;
-                            
-                            // See https://learn.microsoft.com/en-us/graph/api/driveitem-createuploadsession?view=graph-rest-1.0 
+
+                            // See https://learn.microsoft.com/en-us/graph/api/driveitem-createuploadsession?view=graph-rest-1.0
                             // Remarks - "If you include the Authorization header when issuing the PUT call, it may result in an HTTP 401 Unauthorized response. Only send the Authorization header and bearer token when issuing the POST during the first step. Don't include it when you issue the PUT call."
                             request.Headers.Authorization = null;
                             request.Headers.Remove("Authorization");
